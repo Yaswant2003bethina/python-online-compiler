@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>python online compiler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/style.css">
     <!-- CodeMirror Core -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
@@ -32,11 +33,21 @@
             border-radius: 0 0 12px 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             margin-bottom: 30px;
+            flex-wrap: wrap;
         }
         .header-title {
             font-size: 2rem;
             font-weight: 700;
             letter-spacing: 1px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .header-actions button, .header-actions input[type="text"] {
+            margin-bottom: 8px;
         }
         .header-actions button {
             background: #00e676;
@@ -61,15 +72,16 @@
             width: 220px;
         }
         .container {
-            /*max-width: 900px;*/
-            width: 100vw;
-            margin: 0;
+            width: 100%;
+            margin: 0 auto;
             padding: 0 0 40px 0;
+            box-sizing: border-box;
         }
         .colab-toolbar {
             display: flex;
             gap: 12px;
             margin-bottom: 24px;
+            flex-wrap: wrap;
         }
         .colab-toolbar button {
             background: #3498db;
@@ -81,6 +93,7 @@
             font-weight: 500;
             cursor: pointer;
             transition: background 0.2s;
+            margin-bottom: 8px;
         }
         .colab-toolbar button:hover {
             background: #217dbb;
@@ -93,6 +106,8 @@
             padding: 22px 22px 14px 22px;
             position: relative;
             transition: box-shadow 0.2s;
+            width: 100%;
+            box-sizing: border-box;
         }
         .cell:hover {
             box-shadow: 0 4px 18px rgba(44,62,80,0.13);
@@ -103,6 +118,7 @@
             top: 16px;
             display: flex;
             gap: 7px;
+            flex-wrap: wrap;
         }
         .cell-controls button {
             background: #f1f1f1;
@@ -113,6 +129,7 @@
             font-size: 1rem;
             cursor: pointer;
             transition: background 0.2s;
+            margin-bottom: 4px;
         }
         .cell-controls button:hover {
             background: #e0e0e0;
@@ -126,6 +143,7 @@
             font-family: monospace;
             font-size: 15px;
             white-space: pre-wrap;
+            overflow-x: auto;
         }
         .text-cell {
             min-height: 30px;
@@ -165,6 +183,52 @@
             color: #f1f1f1;
             border-radius: 7px;
             padding: 0;
+            overflow-x: auto;
+        }
+        /* Responsive styles */
+        @media (max-width: 900px) {
+            .header-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 14px 8px;
+            }
+            .header-title {
+                font-size: 1.3rem;
+                margin-bottom: 8px;
+            }
+            .header-actions {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .header-actions input[type="text"] {
+                width: 100%;
+                margin-right: 0;
+            }
+            .container {
+                padding: 0 2vw 30px 2vw;
+            }
+            .cell {
+                padding: 12px 4vw 10px 4vw;
+            }
+            .colab-toolbar {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .cell-output, .text-cell, .CodeMirror {
+                font-size: 13px;
+            }
+        }
+        @media (max-width: 600px) {
+            .header-title {
+                font-size: 1.1rem;
+            }
+            .cell {
+                padding: 8px 2vw 8px 2vw;
+            }
+            .cell-output, .text-cell, .CodeMirror {
+                font-size: 11px;
+            }
         }
     </style>
 </head>
