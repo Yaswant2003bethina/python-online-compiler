@@ -348,18 +348,17 @@ sys._stdout = sys.stdout
 sys._stderr = sys.stderr
 sys.stdout = sys.stderr = __pyodide_output = StringIO()
 `);
-                let result;
-                try {
-                    result = await pyodide.runPythonAsync(code);
-                } catch (err) {
-                    // Error will be in the buffer
-                }
+                // Run user code in a try/except to capture errors
+                await pyodide.runPythonAsync(`
+import traceback
+try:
+    exec('''${code.replace(/'/g, "''")}''')
+except Exception:
+    import sys
+    sys.__pyodide_output.write(traceback.format_exc())
+`);
                 // Get output from buffer
                 output = await pyodide.runPythonAsync('__pyodide_output.getvalue()');
-                // If result is not None and not empty, append it
-                if (result !== undefined && result !== null && result !== '') {
-                    output += (output ? '\n' : '') + str(result);
-                }
                 // Restore stdout and stderr
                 await pyodide.runPythonAsync('sys.stdout = sys._stdout; sys.stderr = sys._stderr');
                 if (!output) output = '';
