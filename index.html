@@ -325,13 +325,6 @@ function createCell(type, content = '') {
         editor.on('change', autoResizeEditor);
         setTimeout(autoResizeEditor, 0);
 
-        // Show suggestions as you type
-        editor.on('inputRead', function(cm, change) {
-            if (change.text[0] && /[\w\.]/.test(change.text[0])) {
-                cm.showHint({completeSingle: false});
-            }
-        });
-
         // Run button
         const runBtn = document.createElement('button');
         runBtn.textContent = '▶ Run';
@@ -340,22 +333,12 @@ function createCell(type, content = '') {
             runBtn.disabled = true;
             runBtn.textContent = 'Running...';
             const code = editor.getValue();
-            let inputValues = [];
-            let inputIndex = 0;
-            if (code.includes('input(')) {
-                const userInput = prompt('Enter all inputs (one per line):') || '';
-                inputValues = userInput.split(/\r?\n/);
-            }
             let output = '';
             try {
                 const pyodide = await pyodideReadyPromise;
-                // Patch input() for Pyodide to support multiple inputs
-                pyodide.globals.set('input', () => {
-                    if (inputIndex < inputValues.length) {
-                        return inputValues[inputIndex++];
-                    } else {
-                        return '';
-                    }
+                // Patch input() for Pyodide to use prompt
+                pyodide.globals.set('input', function() {
+                    return window.prompt('Input:') || '';
                 });
                 // Redirect stdout and stderr
                 await pyodide.runPythonAsync(`
