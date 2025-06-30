@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>python online compiler</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- CodeMirror Core -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/hint/show-hint.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/selection/active-line.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/hint/python-hint.min.js"></script>
+    <!-- Pyodide for running Python in browser -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #23272f;
+            color: #fff;
+            padding: 18px 32px;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .header-actions button {
+            background: #00e676;
+            color: #23272f;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 22px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .header-actions button:hover {
+            background: #00c853;
+        }
+        .header-actions input[type="text"] {
+            font-size: 1rem;
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            width: 220px;
+        }
+        .container {
+            /*max-width: 900px;*/
+            width: 100vw;
+            margin: 0;
+            padding: 0 0 40px 0;
+        }
+        .colab-toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .colab-toolbar button {
+            background: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .colab-toolbar button:hover {
+            background: #217dbb;
+        }
+        .cell {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(44,62,80,0.07);
+            margin-bottom: 22px;
+            padding: 22px 22px 14px 22px;
+            position: relative;
+            transition: box-shadow 0.2s;
+        }
+        .cell:hover {
+            box-shadow: 0 4px 18px rgba(44,62,80,0.13);
+        }
+        .cell-controls {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            display: flex;
+            gap: 7px;
+        }
+        .cell-controls button {
+            background: #f1f1f1;
+            color: #23272f;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .cell-controls button:hover {
+            background: #e0e0e0;
+        }
+        .cell-output {
+            background: #23272f;
+            color: #00e676;
+            padding: 12px;
+            border-radius: 7px;
+            margin-top: 14px;
+            font-family: monospace;
+            font-size: 15px;
+            white-space: pre-wrap;
+        }
+        .text-cell {
+            min-height: 30px;
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 7px;
+            background: #f9f9f9;
+            font-size: 20px;
+            resize: none;
+            overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .run-btn {
+            background: #00e676;
+            color: #23272f;
+            padding: 7px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .run-btn:hover {
+            background: #00c853;
+        }
+        /* CodeMirror font size and full width/height */
+        .CodeMirror {
+            font-size: 15px;
+            min-height: 40px;
+            width: 100% !important;
+            box-sizing: border-box;
+            line-height: 1.6;
+            background: #1e1e1e;
+            color: #f1f1f1;
+            border-radius: 7px;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="header-bar">
+    <div class="header-title">python Online Compiler </div>
+    <div class="header-actions">
+        <input id="pyFileName" type="text" value="notebook.py" style="font-size:1rem;padding:7px 10px;border-radius:6px;border:1px solid #ccc;margin-right:10px;" />
+        <button id="downloadPy">Download as .py</button>
+    </div>
+</div>
+<div class="container">
+    <div class="colab-toolbar">
+        <button id="addCodeCell">+ Code</button>
+        <button id="addTextCell">+ Text</button>
+    </div>
+    <div id="cells"></div>
+</div>
+<script>
+// Only Python mode
+    const languageModes = {
+    python: "python"
+};
+
+let pyodideReadyPromise = loadPyodideAndPackages();
+async function loadPyodideAndPackages() {
+    const pyodide = await loadPyodide();
+    return pyodide;
+}
+
+let cells = [];
+
+function createCell(type, content = '') {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+
+    const controls = document.createElement('div');
+    controls.className = 'cell-controls';
+
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '↑';
+    upBtn.title = 'Move up';
+    upBtn.onclick = () => moveCell(cell, -1);
+    controls.appendChild(upBtn);
+
+    const downBtn = document.createElement('button');
+    downBtn.textContent = '↓';
+    downBtn.title = 'Move down';
+    downBtn.onclick = () => moveCell(cell, 1);
+    controls.appendChild(downBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.title = 'Delete cell';
+    delBtn.onclick = () => {
+        cell.remove();
+        updateCellsArray();
+    };
+    controls.appendChild(delBtn);
+
+    cell.appendChild(controls);
+
+    if (type === 'code') {
+        // No language selector, always Python
+        // CodeMirror editor
+        const textarea = document.createElement('textarea');
+        textarea.value = content || '# Write your Python code here';
+        cell.appendChild(textarea);
+        const editor = CodeMirror.fromTextArea(textarea, {
+        lineNumbers: true,
+            mode: 'python',
+            theme: 'material-darker',
+        indentUnit: 4,
+        tabSize: 4,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+            styleActiveLine: true,
+            extraKeys: { 'Ctrl-Space': 'autocomplete' }
+        });
+        // Auto-resize CodeMirror to fit content
+        function autoResizeEditor() {
+            const doc = editor.getDoc();
+            const lineCount = doc.lineCount();
+            const newHeight = Math.max(40, lineCount * 28 + 16); // 28px per line, plus padding
+            editor.getWrapperElement().style.height = newHeight + 'px';
+            editor.refresh();
+        }
+        editor.on('change', autoResizeEditor);
+        setTimeout(autoResizeEditor, 0);
+
+        // Run button
+        const runBtn = document.createElement('button');
+        runBtn.textContent = '▶ Run';
+        runBtn.className = 'run-btn';
+        runBtn.onclick = async () => {
+            runBtn.disabled = true;
+            runBtn.textContent = 'Running...';
+            const code = editor.getValue();
+            let input = '';
+            if (code.includes('input(')) {
+                input = prompt('Enter input for this code cell:') || '';
+            }
+            let output = '';
+            try {
+                const pyodide = await pyodideReadyPromise;
+                // Patch input() for Pyodide
+                pyodide.globals.set('input', () => input);
+                // Redirect stdout and stderr
+                await pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+sys._stdout = sys.stdout
+sys._stderr = sys.stderr
+sys.stdout = sys.stderr = __pyodide_output = StringIO()
+`);
+                let result;
+                try {
+                    result = await pyodide.runPythonAsync(code);
+                } catch (err) {
+                    // Error will be in the buffer
+                }
+                // Get output from buffer
+                output = await pyodide.runPythonAsync('__pyodide_output.getvalue()');
+                // If result is not None and not empty, append it
+                if (result !== undefined && result !== null && result !== '') {
+                    output += (output ? '\n' : '') + str(result);
+                }
+                // Restore stdout and stderr
+                await pyodide.runPythonAsync('sys.stdout = sys._stdout; sys.stderr = sys._stderr');
+                if (!output) output = '';
+            } catch (err) {
+                output = err.toString();
+            }
+            outputDiv.textContent = output;
+            runBtn.disabled = false;
+            runBtn.textContent = '▶ Run';
+        };
+        cell.appendChild(runBtn);
+
+        // Output area
+        const outputDiv = document.createElement('div');
+        outputDiv.className = 'cell-output';
+        outputDiv.textContent = 'Output will appear here...';
+        cell.appendChild(outputDiv);
+    } else if (type === 'text') {
+        const textDiv = document.createElement('div');
+        textDiv.className = 'text-cell';
+        textDiv.contentEditable = true;
+        textDiv.innerHTML = content || 'Double-click to edit text...';
+        // Auto-resize text cell as you type
+        function autoResizeTextCell() {
+            textDiv.style.height = 'auto';
+            textDiv.style.height = (textDiv.scrollHeight + 2) + 'px';
+        }
+        textDiv.addEventListener('input', autoResizeTextCell);
+        setTimeout(autoResizeTextCell, 0);
+        cell.appendChild(textDiv);
+    }
+    return cell;
+}
+
+function addCell(type, content = '', index = null) {
+    const cell = createCell(type, content);
+    const cellsDiv = document.getElementById('cells');
+    if (index === null || index >= cellsDiv.children.length) {
+        cellsDiv.appendChild(cell);
+    } else {
+        cellsDiv.insertBefore(cell, cellsDiv.children[index]);
+    }
+    updateCellsArray();
+}
+
+function moveCell(cell, direction) {
+    const cellsDiv = document.getElementById('cells');
+    const idx = Array.from(cellsDiv.children).indexOf(cell);
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= cellsDiv.children.length) return;
+    cellsDiv.removeChild(cell);
+    cellsDiv.insertBefore(cell, cellsDiv.children[newIdx]);
+    updateCellsArray();
+}
+
+function updateCellsArray() {
+    cells = Array.from(document.getElementById('cells').children);
+}
+
+// Download all Python code cells as a .py file
+function getPythonCode() {
+    const cellsDiv = document.getElementById('cells');
+    let pyCode = '';
+    for (const cell of cellsDiv.children) {
+        if (cell.querySelector('.CodeMirror')) {
+            const editor = cell.querySelector('.CodeMirror').CodeMirror;
+            pyCode += editor.getValue() + '\n\n';
+        }
+    }
+    return pyCode.trim();
+}
+
+document.getElementById('downloadPy').onclick = function() {
+    const pyCode = getPythonCode();
+    if (!pyCode) {
+        alert('No Python code cells to download!');
+        return;
+    }
+    let fileName = document.getElementById('pyFileName').value.trim();
+    if (!fileName.endsWith('.py')) fileName += '.py';
+    if (!fileName) fileName = 'notebook.py';
+    const blob = new Blob([pyCode], {type: 'text/x-python'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+};
+
+document.getElementById('addCodeCell').onclick = () => addCell('code');
+document.getElementById('addTextCell').onclick = () => addCell('text');
+
+// Start with one code cell by default
+addCell('code');
+</script>
+</body>
+</html>
