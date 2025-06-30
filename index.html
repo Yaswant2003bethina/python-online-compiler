@@ -242,7 +242,13 @@ function createCell(type, content = '') {
         autoCloseBrackets: true,
         matchBrackets: true,
             styleActiveLine: true,
-            extraKeys: { 'Ctrl-Space': 'autocomplete' }
+            extraKeys: {
+                'Ctrl-Space': 'autocomplete',
+                'Tab': 'autocomplete'
+            },
+            hintOptions: {
+                completeSingle: false
+            }
         });
         // Auto-resize CodeMirror to fit content
         function autoResizeEditor() {
@@ -254,6 +260,13 @@ function createCell(type, content = '') {
         }
         editor.on('change', autoResizeEditor);
         setTimeout(autoResizeEditor, 0);
+
+        // Show suggestions as you type
+        editor.on('inputRead', function(cm, change) {
+            if (change.text[0] && /[\w\.]/.test(change.text[0])) {
+                cm.showHint({completeSingle: false});
+            }
+        });
 
         // Run button
         const runBtn = document.createElement('button');
