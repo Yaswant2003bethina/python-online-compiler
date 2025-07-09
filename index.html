@@ -21,24 +21,31 @@
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
     <style>
         body {
-            background: #f5f7fa;
+            background: #181a1b;
+            padding-top: 90px;
         }
         .header-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
             background: #23272f;
-            color: #fff;
+            color: #f1f1f1;
             padding: 18px 32px;
             border-radius: 0 0 12px 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             margin-bottom: 30px;
             flex-wrap: wrap;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 96%;
+            z-index: 1000;
         }
         .header-title {
             font-size: 2rem;
             font-weight: 700;
             letter-spacing: 1px;
+            color: #f1f1f1;
         }
         .header-actions {
             display: flex;
@@ -50,8 +57,8 @@
             margin-bottom: 8px;
         }
         .header-actions button {
-            background: #00e676;
-            color: #23272f;
+            background: #1e88e5;
+            color: #fff;
             border: none;
             border-radius: 6px;
             padding: 10px 22px;
@@ -61,15 +68,17 @@
             transition: background 0.2s;
         }
         .header-actions button:hover {
-            background: #00c853;
+            background: #1565c0;
         }
         .header-actions input[type="text"] {
             font-size: 1rem;
             padding: 7px 10px;
             border-radius: 6px;
-            border: 1px solid #ccc;
+            border: 1px solid #444;
             margin-right: 10px;
             width: 220px;
+            background: #23272f;
+            color: #f1f1f1;
         }
         .container {
             width: 100%;
@@ -99,9 +108,9 @@
             background: #217dbb;
         }
         .cell {
-            background: #fff;
+            background: #23272f;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(44,62,80,0.07);
+            box-shadow: 0 2px 12px rgba(20,20,20,0.25);
             margin-bottom: 22px;
             padding: 22px 22px 14px 22px;
             position: relative;
@@ -121,8 +130,8 @@
             flex-wrap: wrap;
         }
         .cell-controls button {
-            background: #f1f1f1;
-            color: #23272f;
+            background: #181a1b;
+            color: #f1f1f1;
             border: none;
             border-radius: 4px;
             padding: 4px 10px;
@@ -133,10 +142,10 @@
             z-index:1;
         }
         .cell-controls button:hover {
-            background: #e0e0e0;
+            background: #23272f;
         }
         .cell-output {
-            background: #23272f;
+            background: #181a1b;
             color: #00e676;
             padding: 12px;
             border-radius: 7px;
@@ -149,9 +158,10 @@
         .text-cell {
             min-height: 30px;
             padding: 12px;
-            border: 1px solid #eee;
+            border: 1px solid #444;
             border-radius: 7px;
-            background: #f9f9f9;
+            background: #23272f;
+            color: #f1f1f1;
             font-size: 20px;
             resize: none;
             overflow: hidden;
@@ -171,20 +181,20 @@
             transition: background 0.2s;
         }
         .run-btn:hover {
-            background: #040708;
+            background: #00c853;
         }
         /* CodeMirror font size and full width/height */
         .CodeMirror {
             font-size: 15px;
             min-height: 40px;
-            width: 100% !important;
+            width: 100% ;
             box-sizing: border-box;
             line-height: 1.6;
-            background: #1e1e1e;
+            background: #181a1b;
             color: #f1f1f1;
             border-radius: 7px;
             padding: 0;
-            overflow-x: auto;
+            overflow-x: hidden;
         }
         /* Responsive styles */
         @media (max-width: 900px) {
@@ -237,15 +247,13 @@
 <div class="header-bar">
     <div class="header-title">python Online Compiler </div>
     <div class="header-actions">
-        <input id="pyFileName" type="text" value="notebook.py" style="font-size:1rem;padding:7px 10px;border-radius:6px;border:1px solid #ccc;margin-right:10px;" />
-        <button id="downloadPy">Download as .py</button>
+        <button id="addCodeCell">+ Code</button>
+        <button id="addTextCell">+ Text</button>
+        <input id="pyFileName" type="text" value="notebook.ipynb" style="font-size:1rem;padding:7px 10px;border-radius:6px;border:1px solid #ccc;margin-right:10px;" />
+        <button id="downloadIpynb">Download as .ipynb</button>
     </div>
 </div>
 <div class="container">
-    <div class="colab-toolbar">
-        <button id="addCodeCell">+ Code</button>
-        <button id="addTextCell">+ Text</button>
-    </div>
     <div id="cells"></div>
 </div>
 <script>
@@ -307,12 +315,27 @@ function createCell(type, content = '') {
         autoCloseBrackets: true,
         matchBrackets: true,
             styleActiveLine: true,
+            lineWrapping: true,
             extraKeys: {
                 'Ctrl-Space': 'autocomplete',
-                'Tab': 'autocomplete'
+                'Tab': function(cm) {
+                    if (cm.somethingSelected()) {
+                        cm.indentSelection('add');
+                    } else {
+                        cm.replaceSelection('    ', 'end', '+input');
+                    }
+                }
             },
             hintOptions: {
                 completeSingle: false
+            }
+        });
+        // Auto trigger autocomplete after typing a dot or after a short delay
+        editor.on('inputRead', function(cm, change) {
+            if (change.text[0] === '.' || /[a-zA-Z0-9_]/.test(change.text[0])) {
+                setTimeout(function() {
+                    cm.showHint({completeSingle: false});
+                }, 100);
             }
         });
         // Auto-resize CodeMirror to fit content
@@ -333,13 +356,31 @@ function createCell(type, content = '') {
         runBtn.onclick = async () => {
             runBtn.disabled = true;
             runBtn.textContent = 'Running...';
-            const code = editor.getValue();
+            let code = editor.getValue();
             let output = '';
             try {
+                // Auto-print last expression if not a statement
+                let lines = code.trim().split('\n');
+                let lastLine = lines[lines.length - 1].trim();
+                // Only auto-print if last line is not empty, not a print, not assignment, not def/class/import/for/while/if/try/with/return
+                if (
+                    lastLine &&
+                    !lastLine.startsWith('print') &&
+                    !lastLine.match(/^(def |class |import |from |for |while |if |try|with |return |#|@)/) &&
+                    !lastLine.includes('=')
+                ) {
+                    lines[lines.length - 1] = `print(${lastLine})`;
+                    code = lines.join('\n');
+                }
                 const pyodide = await pyodideReadyPromise;
-                // Patch input() for Pyodide to use prompt
-                pyodide.globals.set('input', function() {
-                    return window.prompt('Input:') || '';
+                // Patch input() for Pyodide to use prompt and show input in output area
+                pyodide.globals.set('input', function(promptText) {
+                    let value = window.prompt(promptText || 'Input:') || '';
+                    // Write prompt and value to output buffer
+                    pyodide.runPython(
+                        `try:\n    __pyodide_output.write(str(${JSON.stringify(promptText || 'Input:')}) + '\\n' + str(${JSON.stringify(value)}) + '\\n')\nexcept: pass`
+                    );
+                    return value;
                 });
                 // Redirect stdout and stderr
                 await pyodide.runPythonAsync(`
@@ -366,7 +407,7 @@ except Exception:
             } catch (err) {
                 output = err.toString();
             }
-            outputDiv.textContent = output;
+            outputDiv.textContent = output ? output.replace(/^(Input:[\s\S]*?\n\d+\n)/, '$1Output:\n') : '';
             runBtn.disabled = false;
             runBtn.textContent = '▶ Run';
         };
@@ -432,16 +473,10 @@ function getPythonCode() {
     return pyCode.trim();
 }
 
-document.getElementById('downloadPy').onclick = function() {
-    const pyCode = getPythonCode();
-    if (!pyCode) {
-        alert('No Python code cells to download!');
-        return;
-    }
-    let fileName = document.getElementById('pyFileName').value.trim();
-    if (!fileName.endsWith('.py')) fileName += '.py';
-    if (!fileName) fileName = 'notebook.py';
-    const blob = new Blob([pyCode], {type: 'text/x-python'});
+document.getElementById('downloadIpynb').onclick = function() {
+    const notebook = getNotebookJSON();
+    const fileName = (document.getElementById('pyFileName').value.trim().replace(/\.py$/, '') || 'notebook') + '.ipynb';
+    const blob = new Blob([JSON.stringify(notebook, null, 2)], {type: 'application/x-ipynb+json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -459,6 +494,61 @@ document.getElementById('addTextCell').onclick = () => addCell('text');
 
 // Start with one code cell by default
 addCell('code');
+
+function getNotebookJSON() {
+    const cellsDiv = document.getElementById('cells');
+    let cellsArr = [];
+    for (const cell of cellsDiv.children) {
+        if (cell.querySelector('.CodeMirror')) {
+            const editor = cell.querySelector('.CodeMirror').CodeMirror;
+            // Get output from the cell-output div
+            let outputText = '';
+            const outputDiv = cell.querySelector('.cell-output');
+            if (outputDiv) {
+                outputText = outputDiv.textContent || '';
+            }
+            // Jupyter output format
+            let outputs = [];
+            if (outputText && outputText !== 'Output will appear here...') {
+                outputs.push({
+                    output_type: 'stream',
+                    name: 'stdout',
+                    text: outputText.split('\n').map(line => line + '\n')
+                });
+            }
+            cellsArr.push({
+                cell_type: 'code',
+                metadata: {},
+                source: editor.getValue().split('\n').map(line => line + '\n'),
+                outputs: outputs,
+                execution_count: null
+            });
+        } else if (cell.querySelector('.text-cell')) {
+            const text = cell.querySelector('.text-cell').innerText;
+            cellsArr.push({
+                cell_type: 'markdown',
+                metadata: {},
+                source: text.split('\n').map(line => line + '\n')
+            });
+        }
+    }
+    return {
+        cells: cellsArr,
+        metadata: {
+            kernelspec: {
+                display_name: "Python 3",
+                language: "python",
+                name: "python3"
+            },
+            language_info: {
+                name: "python",
+                version: "3.x"
+            }
+        },
+        nbformat: 4,
+        nbformat_minor: 5
+    };
+}
 </script>
 </body>
 </html>
