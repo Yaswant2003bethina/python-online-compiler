@@ -19,6 +19,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/hint/python-hint.min.js"></script>
     <!-- Pyodide for running Python in browser -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
             background: #181a1b;
@@ -246,10 +247,27 @@
 <body>
 <div class="header-bar">
     <div class="header-title">python Online Compiler </div>
+    <div id="g_id_onload"
+        data-client_id="819968491654-inp91okfqga4blp6jhgamb78n095su9a.apps.googleusercontent.com"
+        data-callback="handleCredentialResponse"
+        data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+    <div id="user-info" class="user-info" style="display:none;">
+        <span id="user-name"></span> | <span id="user-email"></span>
+        <button onclick="signOut()">Sign Out</button>
+    </div>
+    <div id="user-actions" class="actions" style="display:none;">
+        <button onclick="showRecent()">Show Recent Practice Pages</button>
+        <button onclick="newPractice()">New Practice Page</button>
+        <button onclick="uploadFile()">Upload File</button>
+    </div>
     <div class="header-actions">
         <button id="addCodeCell">+ Code</button>
         <button id="addTextCell">+ Text</button>
         <input id="pyFileName" type="text" value="notebook.ipynb" style="font-size:1rem;padding:7px 10px;border-radius:6px;border:1px solid #ccc;margin-right:10px;" />
+        <input id="uploadPyFile" type="file" accept=".py,.ipynb" style="display:none;" />
+        <button id="uploadPyFileBtn">Upload .py/.ipynb</button>
         <button id="downloadIpynb">Download as .ipynb</button>
     </div>
 </div>
@@ -495,6 +513,46 @@ document.getElementById('addTextCell').onclick = () => addCell('text');
 // Start with one code cell by default
 addCell('code');
 
+const uploadPyFileInput = document.getElementById('uploadPyFile');
+document.getElementById('uploadPyFileBtn').onclick = function() {
+    uploadPyFileInput.click();
+};
+uploadPyFileInput.onchange = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const fileName = file.name;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        if (fileName.endsWith('.py')) {
+            addCell('code', content);
+        } else if (fileName.endsWith('.ipynb')) {
+            try {
+                const notebook = JSON.parse(content);
+                if (Array.isArray(notebook.cells)) {
+                    for (const cell of notebook.cells) {
+                        if (cell.cell_type === 'code') {
+                            const code = (cell.source || []).join('').replace(/\r?\n$/, '');
+                            addCell('code', code);
+                        } else if (cell.cell_type === 'markdown') {
+                            const text = (cell.source || []).join('').replace(/\r?\n$/, '');
+                            addCell('text', text);
+                        }
+                    }
+                } else {
+                    alert('Invalid .ipynb file: no cells found.');
+                }
+            } catch (err) {
+                alert('Failed to parse .ipynb file: ' + err);
+            }
+        } else {
+            alert('Please upload a .py or .ipynb file');
+        }
+    };
+    reader.readAsText(file);
+    uploadPyFileInput.value = '';
+};
+
 function getNotebookJSON() {
     const cellsDiv = document.getElementById('cells');
     let cellsArr = [];
@@ -548,6 +606,42 @@ function getNotebookJSON() {
         nbformat: 4,
         nbformat_minor: 5
     };
+}
+
+// Google Sign-In logic
+function parseJwt (token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+}
+function handleCredentialResponse(response) {
+    const data = parseJwt(response.credential);
+    document.getElementById('user-name').textContent = data.name;
+    document.getElementById('user-email').textContent = data.email;
+    document.getElementById('user-info').style.display = '';
+    document.getElementById('user-actions').style.display = '';
+    var signinBtn = document.querySelector('.g_id_signin');
+    if (signinBtn) signinBtn.style.display = 'none';
+    window.currentUser = data;
+}
+function signOut() {
+    document.getElementById('user-info').style.display = 'none';
+    document.getElementById('user-actions').style.display = 'none';
+    var signinBtn = document.querySelector('.g_id_signin');
+    if (signinBtn) signinBtn.style.display = '';
+    window.currentUser = null;
+}
+function showRecent() {
+    document.getElementById('main-content').textContent = 'Show recent practice pages for ' + (window.currentUser?.email || '');
+}
+function newPractice() {
+    document.getElementById('main-content').textContent = 'Create a new practice page for ' + (window.currentUser?.email || '');
+}
+function uploadFile() {
+    document.getElementById('main-content').textContent = 'Upload a file for ' + (window.currentUser?.email || '');
 }
 </script>
 </body>
