@@ -379,12 +379,13 @@ function createCell(type, content = '') {
                 // Auto-print last expression if not a statement
                 let lines = code.trim().split('\n');
                 let lastLine = lines[lines.length - 1].trim();
-                // Only auto-print if last line is not empty, not a print, not assignment, not def/class/import/for/while/if/try/with/return
+                // Improved: Only auto-print if last line is an expression (not a statement or function call)
                 if (
                     lastLine &&
                     !lastLine.startsWith('print') &&
                     !lastLine.match(/^(def |class |import |from |for |while |if |try|with |return |#|@)/) &&
-                    !lastLine.includes('=')
+                    !lastLine.includes('=') &&
+                    !lastLine.match(/^[a-zA-Z_][a-zA-Z0-9_]*\s*\(.*\)\s*$/) // don't wrap function calls
                 ) {
                     lines[lines.length - 1] = `print(${lastLine})`;
                     code = lines.join('\n');
