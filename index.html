@@ -247,7 +247,7 @@
 <div class="header-bar">
     <div class="header-title">python Online Compiler </div>
     <div id="g_id_onload"
-        data-client_id="400424423670-9kq1jtb1113ebonelbjh7fo6r2dpk61u.apps.googleusercontent.com"
+        data-client_id="819968491654-inp91okfqga4blp6jhgamb78n095su9a.apps.googleusercontent.com"
         data-callback="handleCredentialResponse"
         data-auto_prompt="false">
     </div>
@@ -618,8 +618,13 @@ function parseJwt (token) {
 }
 function handleCredentialResponse(response) {
     const data = parseJwt(response.credential);
-    alert('Signed in as: ' + data.email);
-    // Here you can update your UI to show user info and actions
+    document.getElementById('user-name').textContent = data.name;
+    document.getElementById('user-email').textContent = data.email;
+    document.getElementById('user-info').style.display = '';
+    document.getElementById('user-actions').style.display = '';
+    var signinBtn = document.querySelector('.g_id_signin');
+    if (signinBtn) signinBtn.style.display = 'none';
+    window.currentUser = data;
 }
 function signOut() {
     document.getElementById('user-info').style.display = 'none';
