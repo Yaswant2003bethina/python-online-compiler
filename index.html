@@ -21,64 +21,91 @@
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
     <style>
         body {
-            background: #181a1b;
-            padding-top: 90px;
+            background: linear-gradient(135deg, #181a1b 0%, #23272f 100%);
+            min-height: 100vh;
+            padding-top: 68px;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+            color: #f1f1f1;
+            letter-spacing: 0.01em;
         }
         .header-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #23272f;
+            background: rgba(35,39,47,0.98);
             color: #f1f1f1;
-            padding: 18px 32px;
-            border-radius: 0 0 12px 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin-bottom: 30px;
+            padding: 10px 18px 8px 18px;
+            border-radius: 0 0 14px 14px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+            margin-bottom: 24px;
             flex-wrap: wrap;
             position: fixed;
             top: 0;
             left: 0;
-            width: 96%;
+            width: 100vw;
             z-index: 1000;
+            backdrop-filter: blur(6px);
+            border-bottom: 2px solid #4f8cff;
         }
         .header-title {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #f1f1f1;
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 1.1px;
+            color: #6ed6ff;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .header-title svg {
+            width: 28px;
+            height: 28px;
+            margin-right: 7px;
         }
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 7px;
             flex-wrap: wrap;
         }
-        .header-actions button, .header-actions input[type="text"] {
-            margin-bottom: 8px;
-        }
         .header-actions button {
-            background: #f8f9fb;
-            color: #101010;
+            background: linear-gradient(90deg,#4f8cff 0%,#6ed6ff 100%);
+            color: #fff;
             border: none;
             border-radius: 6px;
-            padding: 10px 22px;
-            font-size: 1rem;
+            padding: 6px 14px;
+            font-size: 0.98rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            box-shadow: 0 1px 4px #0002;
+            transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+            height: 34px;
+            min-width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .header-actions button:hover {
-            background: #989899;
+        .header-actions button:hover, .header-actions button:focus {
+            background: linear-gradient(90deg,#6ed6ff 0%,#4f8cff 100%);
+            color: #23272f;
+            box-shadow: 0 2px 8px #0003;
         }
         .header-actions input[type="text"] {
-            font-size: 1rem;
+            font-size: 0.98rem;
             padding: 7px 10px;
             border-radius: 6px;
-            border: 1px solid #444;
-            margin-right: 10px;
-            width: 220px;
+            border: 1.2px solid #444;
+            margin-right: 7px;
+            width: 170px;
             background: #23272f;
             color: #f1f1f1;
+            transition: border 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 4px #0002;
+            height: 34px;
+        }
+        .header-actions input[type="text"]:focus {
+            border: 1.2px solid #6ed6ff;
+            outline: none;
+            box-shadow: 0 2px 8px #4f8cff33;
         }
         .container {
             width: 100%;
@@ -108,104 +135,127 @@
             background: #d5d7d8;
         }
         .cell {
-            background: #23272f;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(20,20,20,0.25);
-            margin-bottom: 22px;
-            padding: 22px 22px 14px 22px;
+            background: linear-gradient(120deg, #23272f 80%, #2a2d36 100%);
+            border: 1.5px solid #23272f;
+            box-shadow: 0 4px 24px #0003;
+            margin-bottom: 28px;
+            padding: 26px 26px 16px 26px;
             position: relative;
-            transition: box-shadow 0.2s;
+            transition: box-shadow 0.2s, border 0.2s;
             width: 100%;
             box-sizing: border-box;
         }
         .cell:hover {
-            box-shadow: 0 4px 18px rgba(44,62,80,0.13);
+            border: 1.5px solid #6ed6ff;
+            box-shadow: 0 8px 32px #4f8cff22;
         }
         .cell-controls {
             position: absolute;
-            right: 16px;
-            top: 16px;
+            right: 18px;
+            top: 18px;
             display: flex;
-            gap: 7px;
+            gap: 8px;
             flex-wrap: wrap;
+            z-index: 2;
         }
         .cell-controls button {
             background: #181a1b;
-            color: #f1f1f1;
+            color: #6ed6ff;
             border: none;
-            border-radius: 4px;
-            padding: 4px 10px;
-            font-size: 1rem;
+            border-radius: 5px;
+            padding: 5px 12px;
+            font-size: 1.08rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, color 0.2s;
             margin-bottom: 4px;
-            z-index:1;
+            box-shadow: 0 1px 4px #0002;
         }
         .cell-controls button:hover {
             background: #23272f;
+            color: #fff;
         }
         .cell-output {
+            border-left: 4px solid #6ed6ff;
             background: #181a1b;
             color: #eaf2ee;
-            padding: 12px;
-            border-radius: 7px;
-            margin-top: 14px;
-            font-family: monospace;
-            font-size: 15px;
+            padding: 14px 14px 14px 18px;
+            border-radius: 8px;
+            margin-top: 18px;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+            font-size: 16px;
             white-space: pre-wrap;
             overflow-x: auto;
+            box-shadow: 0 2px 12px #0002;
         }
         .text-cell {
-            min-height: 30px;
-            padding: 12px;
-            border: 1px solid #444;
-            border-radius: 7px;
+            min-height: 36px;
+            padding: 14px 14px 14px 18px;
+            border: 1.5px solid #444;
+            border-radius: 8px;
             background: #23272f;
             color: #f1f1f1;
-            font-size: 20px;
+            font-size: 21px;
             resize: none;
             overflow: hidden;
             width: 100%;
             box-sizing: border-box;
+            margin-bottom: 6px;
+            transition: border 0.2s, box-shadow 0.2s;
         }
-        .run-btn {
-            background: #e8ecea;
-            color: #23272f;
-            padding: 7px 18px;
+        .text-cell:focus {
+            border: 1.5px solid #6ed6ff;
+            box-shadow: 0 2px 8px #4f8cff33;
+            outline: none;
+        }
+        .run-btn, .header-actions button, .primary-btn {
+            background: linear-gradient(90deg,#4f8cff 0%,#6ed6ff 100%);
+            color: #fff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-size: 1.08rem;
+            font-weight: 700;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-            margin-top: 8px;
-            transition: background 0.2s;
+            box-shadow: 0 2px 8px #0002;
+            transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+            outline: none;
         }
-        .run-btn:hover {
-            background: #9d9f9d;
+        .run-btn:hover, .header-actions button:hover, .primary-btn:hover,
+        .run-btn:focus, .header-actions button:focus, .primary-btn:focus {
+            background: linear-gradient(90deg,#6ed6ff 0%,#4f8cff 100%);
+            color: #23272f;
+            box-shadow: 0 4px 16px #0003;
         }
         /* CodeMirror font size and full width/height */
         .CodeMirror {
-            font-size: 15px;
-            min-height: 40px;
+            font-size: 16px;
+            min-height: 44px;
             width: 100% ;
             box-sizing: border-box;
-            line-height: 1.6;
+            line-height: 1.7;
             background: #181a1b;
             color: #f1f1f1;
-            border-radius: 7px;
+            border-radius: 8px;
             padding: 0;
             overflow-x: hidden;
+            border: 1.5px solid #444;
+            margin-bottom: 6px;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .CodeMirror-focused {
+            border: 1.5px solid #6ed6ff !important;
+            box-shadow: 0 2px 8px #4f8cff33;
         }
         /* Responsive styles */
         @media (max-width: 900px) {
             .header-bar {
                 flex-direction: column;
                 align-items: flex-start;
-                padding: 14px 8px;
+                padding: 8px 4vw 6px 4vw;
             }
             .header-title {
-                font-size: 1.3rem;
-                margin-bottom: 8px;
+                font-size: 1.05rem;
+                margin-bottom: 6px;
             }
             .header-actions {
                 width: 100%;
@@ -220,32 +270,46 @@
                 padding: 0 2vw 30px 2vw;
             }
             .cell {
-                padding: 12px 4vw 10px 4vw;
+                padding: 14px 4vw 10px 4vw;
             }
             .colab-toolbar {
                 flex-direction: column;
                 gap: 6px;
             }
             .cell-output, .text-cell, .CodeMirror {
-                font-size: 13px;
+                font-size: 14px;
             }
         }
         @media (max-width: 600px) {
             .header-title {
-                font-size: 1.1rem;
+                font-size: 0.98rem;
+            }
+            .header-bar {
+                padding: 6px 2vw 4px 2vw;
             }
             .cell {
                 padding: 8px 2vw 8px 2vw;
             }
             .cell-output, .text-cell, .CodeMirror {
-                font-size: 11px;
+                font-size: 12px;
             }
+        }
+        .cell.hovered {
+            border: 2.5px solid #6ed6ff !important;
+            background: linear-gradient(120deg, #23272f 80%, #263a4d 100%);
+            box-shadow: 0 0 0 2px #6ed6ff44, 0 8px 32px #4f8cff22;
+            transition: border 0.15s, background 0.15s, box-shadow 0.15s;
         }
     </style>
 </head>
 <body>
 <div class="header-bar">
-    <div class="header-title">python Online Compiler </div>
+    <div class="header-title">
+        <span style="display:inline-flex;align-items:center;">
+            <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:10px;"><g><path d="M19.1 2.2c-3.2 0-6.1.3-8.6.9-7.6 1.7-7.2 5.3-7.2 11.1h14.4v2.2H3.3c-2.1 0-3.2 1.2-3.2 3.3v6.6c0 2.1 1.1 3.2 3.2 3.2h3.2v-4.4c0-2.1 1.1-3.2 3.2-3.2h14.4c2.1 0 3.2 1.1 3.2 3.2v6.6c0 5.8.4 9.4-7.2 11.1-2.5.6-5.4.9-8.6.9-3.2 0-6.1-.3-8.6-.9-7.6-1.7-7.2-5.3-7.2-11.1h14.4v-2.2H3.3c-2.1 0-3.2-1.2-3.2-3.3v-6.6c0-2.1 1.1-3.2 3.2-3.2h3.2v4.4c0 2.1 1.1 3.2 3.2 3.2h14.4c2.1 0 3.2-1.1 3.2-3.2v-6.6c0-5.8.4-9.4-7.2-11.1-2.5-.6-5.4-.9-8.6-.9z" fill="#306998"/><circle cx="11.5" cy="8.5" r="2.2" fill="#FFD43B"/><path d="M18.9 35.8c3.2 0 6.1-.3 8.6-.9 7.6-1.7 7.2-5.3 7.2-11.1H20.3v-2.2h14.4c2.1 0 3.2-1.2 3.2-3.3v-6.6c0-2.1-1.1-3.2-3.2-3.2h-3.2v4.4c0 2.1-1.1 3.2-3.2 3.2H13.5c-2.1 0-3.2-1.1-3.2-3.2v-6.6c0-5.8-.4-9.4 7.2-11.1 2.5-.6 5.4-.9 8.6-.9 3.2 0 6.1.3 8.6.9 7.6 1.7 7.2 5.3 7.2 11.1H20.3v2.2h14.4c2.1 0 3.2 1.2 3.2 3.3v6.6c0 2.1-1.1 3.2-3.2 3.2h-3.2v-4.4c0-2.1-1.1-3.2-3.2-3.2H13.5c-2.1 0-3.2 1.1-3.2 3.2v6.6c0 5.8-.4 9.4 7.2 11.1 2.5.6 5.4.9 8.6.9z" fill="#FFD43B"/><circle cx="26.5" cy="29.5" r="2.2" fill="#306998"/></g></svg>
+            python Online Compiler
+        </span>
+    </div>
     <div id="g_id_onload"
         data-client_id="819968491654-inp91okfqga4blp6jhgamb78n095su9a.apps.googleusercontent.com"
         data-callback="handleCredentialResponse"
@@ -273,6 +337,21 @@
 <div class="container">
     <div id="cells"></div>
 </div>
+<!-- Startup Modal -->
+<div id="startupModal" role="dialog" aria-modal="true" aria-labelledby="startupModalTitle" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;transition:background 0.3s;">
+  <div id="startupModalContent" style="background:#23272f;padding:32px 24px 24px 24px;border-radius:18px;max-width:95vw;width:370px;text-align:center;box-shadow:0 8px 32px #000a;position:relative;animation:modalIn 0.25s;">
+    <button id="closeModalBtn" aria-label="Close" style="position:absolute;top:12px;right:12px;background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;">&times;</button>
+    <h2 id="startupModalTitle" style="color:#f1f1f1;margin-bottom:10px;font-size:1.5rem;">Welcome!</h2>
+    <div id="recentPagesList" style="margin:18px 0 10px 0;"></div>
+    <button id="newPageBtn" class="primary-btn" style="margin:8px 0 8px 0;width:90%;">+ New Page</button>
+    <div id="newPageInputDiv" style="display:none;margin-top:12px;">
+      <input id="newPageNameInput" type="text" placeholder="Enter new page name" style="padding:9px 12px;border-radius:7px;border:1px solid #444;width:80%;background:#181a1b;color:#f1f1f1;font-size:1rem;" />
+      <button id="createNewPageBtn" class="primary-btn" style="margin-top:8px;width:60%;">Create</button>
+    </div>
+  </div>
+</div>
+<!-- Toast Notification -->
+<div id="toast" style="display:none;position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#23272f;color:#fff;padding:14px 28px;border-radius:8px;box-shadow:0 2px 12px #000a;font-size:1rem;z-index:3000;opacity:0;transition:opacity 0.3s, bottom 0.3s;"></div>
 <script>
 // Only Python mode
     const languageModes = {
@@ -286,6 +365,23 @@ async function loadPyodideAndPackages() {
 }
 
 let cells = [];
+// --- Robust Cell Hover Tracking ---
+let hoveredCellIndex = null;
+function updateCellHoverTracking() {
+    const cellsDiv = document.getElementById('cells');
+    Array.from(cellsDiv.children).forEach((cell, idx) => {
+        cell.onmouseenter = () => {
+            // Remove .hovered from all cells first
+            Array.from(cellsDiv.children).forEach(c => c.classList.remove('hovered'));
+            hoveredCellIndex = idx;
+            cell.classList.add('hovered');
+        };
+        cell.onmouseleave = () => {
+            if (hoveredCellIndex === idx) hoveredCellIndex = null;
+            cell.classList.remove('hovered');
+        };
+    });
+}
 
 function createCell(type, content = '') {
     const cell = document.createElement('div');
@@ -643,6 +739,266 @@ function newPractice() {
 function uploadFile() {
     document.getElementById('main-content').textContent = 'Upload a file for ' + (window.currentUser?.email || '');
 }
+// --- Enhanced Local Notebook Management ---
+const MAX_NOTEBOOKS = 20; // Limit for saved notebooks
+const NOTEBOOK_PREFIX = 'practice_notebook_';
+const NOTEBOOK_LIST_KEY = 'practice_notebook_list';
+let currentNotebookName = null;
+
+function saveNotebookToLocal(name) {
+    const notebook = getNotebookJSON();
+    const now = new Date().toISOString();
+    localStorage.setItem(NOTEBOOK_PREFIX + name, JSON.stringify({notebook, lastModified: now}));
+    // Update notebook list
+    let list = JSON.parse(localStorage.getItem(NOTEBOOK_LIST_KEY) || '[]');
+    if (!list.includes(name)) {
+        list.unshift(name); // Most recent first
+        if (list.length > MAX_NOTEBOOKS) {
+            // Remove oldest
+            const toRemove = list.pop();
+            localStorage.removeItem(NOTEBOOK_PREFIX + toRemove);
+        }
+        localStorage.setItem(NOTEBOOK_LIST_KEY, JSON.stringify(list));
+    }
+    // Update last modified
+    localStorage.setItem(NOTEBOOK_PREFIX + name + '_lastmod', now);
+}
+function loadNotebookFromLocal(name) {
+    const data = localStorage.getItem(NOTEBOOK_PREFIX + name);
+    if (!data) return false;
+    try {
+        let parsed = JSON.parse(data);
+        let notebook = parsed.notebook || parsed; // backward compatible
+        loadNotebookJSON(notebook);
+        currentNotebookName = name;
+        document.getElementById('pyFileName').value = name + '.ipynb';
+        return true;
+    } catch {
+        return false;
+    }
+}
+function getRecentNotebookNames() {
+    return JSON.parse(localStorage.getItem(NOTEBOOK_LIST_KEY) || '[]');
+}
+function getNotebookLastModified(name) {
+    const data = localStorage.getItem(NOTEBOOK_PREFIX + name);
+    if (!data) return '';
+    try {
+        let parsed = JSON.parse(data);
+        return parsed.lastModified ? new Date(parsed.lastModified).toLocaleString() : '';
+    } catch { return ''; }
+}
+function deleteNotebook(name) {
+    localStorage.removeItem(NOTEBOOK_PREFIX + name);
+    localStorage.removeItem(NOTEBOOK_PREFIX + name + '_lastmod');
+    let list = getRecentNotebookNames().filter(n => n !== name);
+    localStorage.setItem(NOTEBOOK_LIST_KEY, JSON.stringify(list));
+}
+function renameNotebook(oldName, newName) {
+    if (!oldName || !newName || oldName === newName) return false;
+    if (localStorage.getItem(NOTEBOOK_PREFIX + newName)) return false;
+    const data = localStorage.getItem(NOTEBOOK_PREFIX + oldName);
+    if (!data) return false;
+    localStorage.setItem(NOTEBOOK_PREFIX + newName, data);
+    localStorage.setItem(NOTEBOOK_PREFIX + newName + '_lastmod', localStorage.getItem(NOTEBOOK_PREFIX + oldName + '_lastmod'));
+    deleteNotebook(oldName);
+    let list = getRecentNotebookNames();
+    list = list.map(n => n === oldName ? newName : n);
+    localStorage.setItem(NOTEBOOK_LIST_KEY, JSON.stringify(list));
+    return true;
+}
+function clearCells() {
+    document.getElementById('cells').innerHTML = '';
+    updateCellsArray();
+}
+function loadNotebookJSON(notebook) {
+    clearCells();
+    if (Array.isArray(notebook.cells)) {
+        for (const cell of notebook.cells) {
+            if (cell.cell_type === 'code') {
+                const code = (cell.source || []).join('').replace(/\r?\n$/, '');
+                addCell('code', code);
+            } else if (cell.cell_type === 'markdown') {
+                const text = (cell.source || []).join('').replace(/\r?\n$/, '');
+                addCell('text', text);
+            }
+        }
+    }
+    updateCellHoverTracking();
+}
+// --- Auto-save on changes ---
+function autoSaveNotebook() {
+    if (currentNotebookName) {
+        saveNotebookToLocal(currentNotebookName);
+    }
+}
+// Patch addCell, moveCell, updateCellsArray, and cell editors to auto-save
+const origAddCell = addCell;
+addCell = function(type, content = '', index = null) {
+    origAddCell(type, content, index);
+    autoSaveNotebook();
+    // Patch CodeMirror/text-cell for auto-save
+    const cell = cells[cells.length-1];
+    if (type === 'code') {
+        const editor = cell.querySelector('.CodeMirror').CodeMirror;
+        editor.on('change', autoSaveNotebook);
+    } else if (type === 'text') {
+        const textDiv = cell.querySelector('.text-cell');
+        textDiv.addEventListener('input', autoSaveNotebook);
+    }
+};
+const origMoveCell = moveCell;
+moveCell = function(cell, direction) {
+    origMoveCell(cell, direction);
+    autoSaveNotebook();
+};
+const origUpdateCellsArray = updateCellsArray;
+updateCellsArray = function() {
+    origUpdateCellsArray();
+    autoSaveNotebook();
+};
+// --- Toast Notification ---
+function showToast(msg, duration=2200) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.opacity = 1; toast.style.bottom = '32px'; }, 10);
+  setTimeout(() => { toast.style.opacity = 0; toast.style.bottom = '12px'; }, duration);
+  setTimeout(() => { toast.style.display = 'none'; toast.style.bottom = '32px'; }, duration+350);
+}
+// --- Enhanced Modal Logic (UI/UX) ---
+function showStartupModal() {
+    const modal = document.getElementById('startupModal');
+    const modalContent = document.getElementById('startupModalContent');
+    const recentListDiv = document.getElementById('recentPagesList');
+    const names = getRecentNotebookNames();
+    const current = currentNotebookName;
+    if (names.length) {
+        recentListDiv.innerHTML = '<b style="color:#6ed6ff;">Recent Pages:</b>' +
+            names.map(n =>
+                `<div class=\"recent-card${n===current?' current':''}\">`+
+                `<button class=\"recentPageBtn recent-name\" data-name=\"${n}\" tabindex=\"0\" title=\"Open\">📓 ${n}</button>`+
+                `<span class=\"recent-meta\">${getNotebookLastModified(n)}</span>`+
+                `<button class=\"action-btn renamePageBtn\" data-name=\"${n}\" title=\"Rename\">✏️</button>`+
+                `<button class=\"action-btn deletePageBtn\" data-name=\"${n}\" title=\"Delete\">🗑️</button>`+
+                `</div>`
+            ).join('');
+    } else {
+        recentListDiv.innerHTML = '<i style="color:#aaa;">No recent pages found.</i>';
+    }
+    modal.style.display = 'flex';
+    setTimeout(()=>{modal.style.background='rgba(0,0,0,0.45)';},10);
+    document.body.style.overflow = 'hidden';
+    // Patch recent page buttons
+    setTimeout(() => {
+        document.querySelectorAll('.recentPageBtn').forEach(btn => {
+            btn.onclick = function() {
+                loadNotebookFromLocal(this.dataset.name);
+                hideStartupModal();
+                showToast('Notebook loaded!');
+            };
+        });
+        document.querySelectorAll('.deletePageBtn').forEach(btn => {
+            btn.onclick = function(e) {
+                e.stopPropagation();
+                if (confirm('Delete notebook "' + this.dataset.name + '"?')) {
+                    deleteNotebook(this.dataset.name);
+                    showStartupModal();
+                    showToast('Notebook deleted.');
+                }
+            };
+        });
+        document.querySelectorAll('.renamePageBtn').forEach(btn => {
+            btn.onclick = function(e) {
+                e.stopPropagation();
+                const oldName = this.dataset.name;
+                const newName = prompt('Rename notebook:', oldName);
+                if (newName && newName !== oldName) {
+                    if (renameNotebook(oldName, newName)) {
+                        showStartupModal();
+                        showToast('Notebook renamed.');
+                    } else {
+                        showToast('Rename failed. Name may already exist.');
+                    }
+                }
+            };
+        });
+    }, 100);
+    // Focus trap
+    modalContent.setAttribute('tabindex', '-1');
+    modalContent.focus();
+}
+function hideStartupModal() {
+    const modal = document.getElementById('startupModal');
+    modal.style.background = 'rgba(0,0,0,0)';
+    setTimeout(()=>{modal.style.display = 'none';}, 200);
+    document.body.style.overflow = '';
+    document.getElementById('newPageInputDiv').style.display = 'none';
+    document.getElementById('newPageNameInput').value = '';
+}
+document.getElementById('closeModalBtn').onclick = hideStartupModal;
+document.getElementById('newPageBtn').onclick = function() {
+    document.getElementById('newPageInputDiv').style.display = '';
+    document.getElementById('newPageNameInput').focus();
+};
+document.getElementById('createNewPageBtn').onclick = function() {
+    const name = document.getElementById('newPageNameInput').value.trim();
+    if (!name) { showToast('Please enter a name.'); return; }
+    if (getRecentNotebookNames().includes(name)) {
+        if (!confirm('A notebook with this name exists. Overwrite?')) return;
+    }
+    if (getRecentNotebookNames().length >= MAX_NOTEBOOKS && !getRecentNotebookNames().includes(name)) {
+        showToast('Notebook limit reached. Delete an old notebook first.');
+        return;
+    }
+    currentNotebookName = name;
+    clearCells();
+    addCell('code');
+    saveNotebookToLocal(name);
+    hideStartupModal();
+    showToast('New notebook created!');
+};
+// Modal close on outside click or Esc
+const modal = document.getElementById('startupModal');
+modal.addEventListener('mousedown', function(e) {
+    if (e.target === modal) hideStartupModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (modal.style.display === 'flex' && e.key === 'Escape') hideStartupModal();
+    if (modal.style.display === 'flex' && e.key === 'Tab') {
+        // Focus trap
+        const focusable = modal.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+        const first = focusable[0];
+        const last = focusable[focusable.length-1];
+        if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+            e.preventDefault();
+            (e.shiftKey ? last : first).focus();
+        }
+    }
+});
+// Show modal on load
+window.addEventListener('DOMContentLoaded', function() {
+    showStartupModal();
+});
+// --- Recent Practice Pages Button ---
+const headerActions = document.querySelector('.header-actions');
+const recentBtn = document.createElement('button');
+recentBtn.textContent = 'Recent Practice Pages';
+recentBtn.className = 'primary-btn';
+recentBtn.style.marginLeft = '8px';
+recentBtn.title = 'Show your saved notebooks';
+recentBtn.onclick = function() {
+    showStartupModal();
+};
+headerActions.appendChild(recentBtn);
+// Update +Code and +Text buttons to insert below hovered cell
+const addCodeBtn = document.getElementById('addCodeCell');
+const addTextBtn = document.getElementById('addTextCell');
+addCodeBtn.onclick = () => addCell('code', '', hoveredCellIndex !== null ? hoveredCellIndex + 1 : null);
+addTextBtn.onclick = () => addCell('text', '', hoveredCellIndex !== null ? hoveredCellIndex + 1 : null);
+// Add tooltips to +Code and +Text buttons
+addCodeBtn.title = 'Add a code cell below the cell your mouse is pointing at';
+addTextBtn.title = 'Add a text cell below the cell your mouse is pointing at';
 </script>
 </body>
 </html>
