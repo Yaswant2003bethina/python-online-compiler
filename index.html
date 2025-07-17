@@ -19,6 +19,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/hint/python-hint.min.js"></script>
     <!-- Pyodide for running Python in browser -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #181a1b 0%, #23272f 100%);
@@ -27,6 +28,17 @@
             font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
             color: #f1f1f1;
             letter-spacing: 0.01em;
+            margin: 0;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        html {
+            box-sizing: border-box;
+            width: 100vw;
+            overflow-x: hidden;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
         }
         .header-bar {
             display: flex;
@@ -46,6 +58,7 @@
             z-index: 1000;
             backdrop-filter: blur(6px);
             border-bottom: 2px solid #4f8cff;
+            min-width: 0;
         }
         .header-title {
             font-size: 1.25rem;
@@ -55,6 +68,7 @@
             display: flex;
             align-items: center;
             gap: 7px;
+            min-width: 0;
         }
         .header-title svg {
             width: 28px;
@@ -66,20 +80,25 @@
             align-items: center;
             gap: 7px;
             flex-wrap: wrap;
+            min-width: 0;
+        }
+        .header-actions button, .header-actions input[type="text"] {
+            min-width: 0;
+            max-width: 100vw;
         }
         .header-actions button {
             background: linear-gradient(90deg,#4f8cff 0%,#6ed6ff 100%);
             color: #fff;
             border: none;
             border-radius: 6px;
-            padding: 6px 14px;
-            font-size: 0.98rem;
+            padding: 4px 10px; /* reduced padding */
+            font-size: 0.90rem; /* reduced font size */
             font-weight: 600;
             cursor: pointer;
             box-shadow: 0 1px 4px #0002;
             transition: background 0.2s, box-shadow 0.2s, color 0.2s;
-            height: 34px;
-            min-width: 80px;
+            height: 28px; /* reduced height */
+            min-width: 60px; /* reduced min-width */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -101,6 +120,7 @@
             transition: border 0.2s, box-shadow 0.2s;
             box-shadow: 0 1px 4px #0002;
             height: 34px;
+            max-width: 60vw;
         }
         .header-actions input[type="text"]:focus {
             border: 1.2px solid #6ed6ff;
@@ -112,6 +132,9 @@
             margin: 0 auto;
             padding: 0 0 40px 0;
             box-sizing: border-box;
+            min-width: 0;
+            /* Prevent content from going under the fixed header bar */
+            margin-top: 76px;
         }
         .colab-toolbar {
             display: flex;
@@ -134,16 +157,20 @@
         .colab-toolbar button:hover {
             background: #d5d7d8;
         }
+        /* Improved code cell/card design */
         .cell {
             background: linear-gradient(120deg, #23272f 80%, #2a2d36 100%);
             border: 1.5px solid #23272f;
-            box-shadow: 0 4px 24px #0003;
-            margin-bottom: 28px;
-            padding: 26px 26px 16px 26px;
+            box-shadow: 0 4px 24px #0003, 0 1.5px 8px #4f8cff11;
+            margin-bottom: 32px;
+            padding: 28px 28px 18px 28px;
             position: relative;
-            transition: box-shadow 0.2s, border 0.2s;
+            transition: box-shadow 0.2s, border 0.2s, background 0.2s;
             width: 100%;
             box-sizing: border-box;
+            min-width: 0;
+            overflow-x: auto;
+            border-radius: 14px;
         }
         .cell:hover {
             border: 1.5px solid #6ed6ff;
@@ -158,7 +185,7 @@
             flex-wrap: wrap;
             z-index: 2;
         }
-        .cell-controls button {
+        .cell-controls button, .cell-controls .cell-copy-btn {
             background: #181a1b;
             color: #6ed6ff;
             border: none;
@@ -169,9 +196,43 @@
             transition: background 0.2s, color 0.2s;
             margin-bottom: 4px;
             box-shadow: 0 1px 4px #0002;
+            outline: none;
         }
-        .cell-controls button:hover {
+        .cell-controls button:hover, .cell-controls .cell-copy-btn:hover {
             background: #23272f;
+            color: #fff;
+        }
+        .cell-controls .cell-copy-btn {
+            font-size: 1rem;
+            padding: 5px 10px;
+        }
+        .cell-exec-count {
+            position: absolute;
+            left: 18px;
+            top: 18px;
+            background: #23272f;
+            color: #6ed6ff;
+            font-size: 0.98rem;
+            font-weight: 700;
+            border-radius: 6px;
+            padding: 2px 10px;
+            box-shadow: 0 1px 4px #0002;
+            z-index: 2;
+            user-select: none;
+        }
+        .cell-collapse-btn {
+            font-size: 1.1rem;
+            padding: 5px 10px;
+            background: #23272f;
+            color: #ffd43b;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .cell-collapse-btn:hover {
+            background: #181a1b;
             color: #fff;
         }
         .cell-output {
@@ -185,7 +246,64 @@
             font-size: 16px;
             white-space: pre-wrap;
             overflow-x: auto;
+            overflow-y: visible;
             box-shadow: 0 2px 12px #0002;
+            min-width: 0;
+            height: auto;
+            min-height: 32px;
+            max-height: none;
+            transition: max-height 0.2s;
+        }
+        .cell-output.collapsed {
+            max-height: 0;
+            padding: 0 14px;
+            margin-top: 0;
+            border-left: none;
+            opacity: 0.2;
+        }
+        .cell.collapsed .CodeMirror,
+        .cell.collapsed .run-btn,
+        .cell.collapsed .cell-controls {
+            display: none !important;
+        }
+        .cell.collapsed .cell-exec-count {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .cell.collapsed {
+            padding-bottom: 10px;
+        }
+        .run-btn {
+            background: linear-gradient(90deg,#4f8cff 0%,#6ed6ff 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 1.02rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px #0002;
+            transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+            outline: none;
+            margin-top: 8px;
+            margin-bottom: 0;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .run-btn .spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #fff;
+            border-top: 3px solid #6ed6ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         .text-cell {
             min-height: 36px;
@@ -201,6 +319,7 @@
             box-sizing: border-box;
             margin-bottom: 6px;
             transition: border 0.2s, box-shadow 0.2s;
+            min-width: 0;
         }
         .text-cell:focus {
             border: 1.5px solid #6ed6ff;
@@ -212,13 +331,14 @@
             color: #fff;
             border: none;
             border-radius: 8px;
-            padding: 10px 24px;
-            font-size: 1.08rem;
+            padding: 6px 14px; /* reduced padding */
+            font-size: 0.95rem; /* reduced font size */
             font-weight: 700;
             cursor: pointer;
             box-shadow: 0 2px 8px #0002;
             transition: background 0.2s, box-shadow 0.2s, color 0.2s;
             outline: none;
+            min-width: 0;
         }
         .run-btn:hover, .header-actions button:hover, .primary-btn:hover,
         .run-btn:focus, .header-actions button:focus, .primary-btn:focus {
@@ -241,6 +361,7 @@
             border: 1.5px solid #444;
             margin-bottom: 6px;
             transition: border 0.2s, box-shadow 0.2s;
+            min-width: 0;
         }
         .CodeMirror-focused {
             border: 1.5px solid #6ed6ff !important;
@@ -252,6 +373,7 @@
                 flex-direction: column;
                 align-items: flex-start;
                 padding: 8px 4vw 6px 4vw;
+                width: 100vw;
             }
             .header-title {
                 font-size: 1.05rem;
@@ -261,13 +383,22 @@
                 width: 100%;
                 flex-direction: column;
                 align-items: stretch;
+                gap: 8px;
+            }
+            .header-actions button, .primary-btn {
+                padding: 5px 10px;
+                font-size: 0.90rem;
+                height: 28px;
+                min-width: 54px;
             }
             .header-actions input[type="text"] {
                 width: 100%;
                 margin-right: 0;
+                max-width: 100vw;
             }
             .container {
                 padding: 0 2vw 30px 2vw;
+                margin-top: 90px; /* slightly more for stacked header */
             }
             .cell {
                 padding: 14px 4vw 10px 4vw;
@@ -286,6 +417,13 @@
             }
             .header-bar {
                 padding: 6px 2vw 4px 2vw;
+                width: 100vw;
+            }
+            .header-actions button, .primary-btn {
+                padding: 4px 8px;
+                font-size: 0.88rem;
+                height: 24px;
+                min-width: 44px;
             }
             .cell {
                 padding: 8px 2vw 8px 2vw;
@@ -293,12 +431,226 @@
             .cell-output, .text-cell, .CodeMirror {
                 font-size: 12px;
             }
+            .header-actions input[type="text"] {
+                font-size: 0.95rem;
+                padding: 6px 7px;
+            }
+            .container {
+                margin-top: 110px; /* more for mobile header stacking */
+            }
+        }
+        @media (max-width: 400px) {
+            .header-bar {
+                padding: 2px 1vw 2px 1vw;
+            }
+            .header-title {
+                font-size: 0.85rem;
+            }
+            .cell {
+                padding: 4px 1vw 4px 1vw;
+            }
+            .cell-output, .text-cell, .CodeMirror {
+                font-size: 10px;
+            }
         }
         .cell.hovered {
             border: 2.5px solid #6ed6ff !important;
             background: linear-gradient(120deg, #23272f 80%, #263a4d 100%);
             box-shadow: 0 0 0 2px #6ed6ff44, 0 8px 32px #4f8cff22;
             transition: border 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+        /* Hamburger menu styles */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #6ed6ff;
+            margin-left: 8px;
+            cursor: pointer;
+            z-index: 1100;
+        }
+        .mobile-menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 56px;
+            right: 12px;
+            background: #23272f;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px #000a;
+            padding: 16px 12px;
+            z-index: 2001;
+            min-width: 180px;
+            width: 70vw;
+            max-width: 320px;
+        }
+        .mobile-menu-dropdown button, .mobile-menu-dropdown input[type="text"] {
+            display: block;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 1rem;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #181a1b;
+            color: #f1f1f1;
+        }
+        .mobile-menu-dropdown button.primary-btn {
+            background: linear-gradient(90deg,#4f8cff 0%,#6ed6ff 100%);
+            color: #fff;
+            border: none;
+        }
+        @media (max-width: 600px) {
+            .header-actions {
+                display: none !important;
+            }
+            .mobile-menu-btn {
+                display: block !important;
+            }
+            .mobile-menu-dropdown {
+                display: none;
+            }
+        }
+        /* Improved text cell design */
+        .text-cell-wrapper {
+            background: linear-gradient(120deg, #23272f 80%, #2a2d36 100%);
+            border: 1.5px solid #444;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0002, 0 1.5px 8px #4f8cff11;
+            margin-bottom: 18px;
+            padding: 0 0 10px 0;
+            position: relative;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .text-cell-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px 12px 0 12px;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .text-cell-toolbar button {
+            background: #181a1b;
+            color: #6ed6ff;
+            border: none;
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-size: 1.08rem;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .text-cell-toolbar button:hover {
+            background: #23272f;
+            color: #fff;
+        }
+        .text-cell-toolbar .preview-toggle {
+            margin-left: auto;
+            background: #23272f;
+            color: #ffd43b;
+        }
+        .text-cell {
+            min-height: 36px;
+            padding: 14px 14px 14px 18px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #f1f1f1;
+            font-size: 21px;
+            resize: none;
+            overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 0;
+            transition: border 0.2s, box-shadow 0.2s;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+        }
+        .text-cell:focus {
+            border: 1.5px solid #6ed6ff;
+            box-shadow: 0 2px 8px #4f8cff33;
+            outline: none;
+            background: #23272f;
+        }
+        .text-cell-placeholder {
+            color: #888;
+            font-style: italic;
+            pointer-events: none;
+            position: absolute;
+            left: 18px;
+            top: 54px;
+            font-size: 1.1rem;
+            z-index: 1;
+        }
+        .text-cell-preview {
+            padding: 16px 18px 16px 22px;
+            color: #f1f1f1;
+            font-size: 21px;
+            background: transparent;
+            border-radius: 8px;
+            min-height: 36px;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+            word-break: break-word;
+        }
+        .text-cell-preview h1, .text-cell-preview h2, .text-cell-preview h3 {
+            color: #6ed6ff;
+        }
+        .text-cell-preview code {
+            background: #181a1b;
+            color: #ffd43b;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+        .text-cell-preview pre {
+            background: #181a1b;
+            color: #ffd43b;
+            border-radius: 6px;
+            padding: 8px 12px;
+            overflow-x: auto;
+        }
+        @media (max-width: 900px) {
+            .text-cell, .text-cell-preview {
+                font-size: 16px;
+            }
+        }
+        @media (max-width: 600px) {
+            .text-cell, .text-cell-preview {
+                font-size: 13px;
+            }
+        }
+        /* Add to CSS: */
+        /*
+        .text-cell-linenumbers {
+            pointer-events: none;
+            background: transparent;
+        }
+        @media (max-width: 900px) {
+            .text-cell-linenumbers { font-size: 0.85em; }
+        }
+        @media (max-width: 600px) {
+            .text-cell-linenumbers { font-size: 0.7em; }
+        }
+        */
+        .text-cell-linenumbers {
+            pointer-events: none;
+            background: transparent;
+            min-width: 32px;
+            max-width: 32px;
+            position: absolute;
+            left: 0;
+            top: 44px;
+            text-align: right;
+            color: #6ed6ff;
+            font-size: 1em;
+            user-select: none;
+            padding-right: 6px;
+            line-height: 1.7;
+            font-family: monospace;
+            z-index: 2;
+        }
+        @media (max-width: 900px) {
+            .text-cell-linenumbers { font-size: 0.85em; }
+        }
+        @media (max-width: 600px) {
+            .text-cell-linenumbers { font-size: 0.7em; }
         }
     </style>
 </head>
@@ -332,6 +684,21 @@
         <input id="uploadPyFile" type="file" accept=".py,.ipynb" style="display:none;" />
         <button id="uploadPyFileBtn">Upload .py/.ipynb</button>
         <button id="downloadIpynb">Download as .ipynb</button>
+        <button id="manualSaveBtn" class="primary-btn" style="margin-left:8px;">💾 Save</button>
+    </div>
+    <!-- Hamburger menu for mobile -->
+    <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Open menu" style="display:none;">
+        &#9776;
+    </button>
+    <div id="mobileMenu" class="mobile-menu-dropdown" style="display:none;">
+        <button id="mobileAddCodeCell">+ Code</button>
+        <button id="mobileAddTextCell">+ Text</button>
+        <input id="mobilePyFileName" type="text" value="notebook.ipynb" />
+        <input id="mobileUploadPyFile" type="file" accept=".py,.ipynb" style="display:none;" />
+        <button id="mobileUploadPyFileBtn">Upload .py/.ipynb</button>
+        <button id="mobileDownloadIpynb">Download as .ipynb</button>
+        <button id="mobileManualSaveBtn" class="primary-btn">💾 Save</button>
+        <button id="mobileRecentBtn" class="primary-btn">Recent Practice Pages</button>
     </div>
 </div>
 <div class="container">
@@ -383,28 +750,86 @@ function updateCellHoverTracking() {
     });
 }
 
-function createCell(type, content = '') {
+// --- Enhanced createCell function for code cells ---
+function createCell(type, content = '', execCount = null, index = null) {
     const cell = document.createElement('div');
     cell.className = 'cell';
 
+    // For code cells, show position-based cell number
+    let execCountDiv = null;
+    if (type === 'code') {
+        execCountDiv = document.createElement('div');
+        execCountDiv.className = 'cell-exec-count';
+        // Find the code cell's position among all code cells
+        let codeCellNumber = 1;
+        if (index !== null) {
+            codeCellNumber = index + 1;
+        } else {
+            // Fallback: count code cells in DOM
+            const cellsDiv = document.getElementById('cells');
+            codeCellNumber = Array.from(cellsDiv.children).filter(c => c.querySelector('.CodeMirror')).length + 1;
+        }
+        execCountDiv.textContent = `[${codeCellNumber}]`;
+        cell.appendChild(execCountDiv);
+    }
+
+    // Controls
     const controls = document.createElement('div');
     controls.className = 'cell-controls';
+    controls.setAttribute('role', 'toolbar');
+    controls.setAttribute('aria-label', 'Cell controls');
 
+    // Collapse/Expand button
+    if (type === 'code') {
+        const collapseBtn = document.createElement('button');
+        collapseBtn.className = 'cell-collapse-btn';
+        collapseBtn.title = 'Collapse/Expand cell';
+        collapseBtn.setAttribute('aria-label', 'Collapse or expand cell');
+        collapseBtn.innerHTML = '&#9660;';
+        collapseBtn.onclick = () => {
+            cell.classList.toggle('collapsed');
+            collapseBtn.innerHTML = cell.classList.contains('collapsed') ? '&#9654;' : '&#9660;';
+        };
+        controls.appendChild(collapseBtn);
+    }
+
+    // Move up
     const upBtn = document.createElement('button');
     upBtn.textContent = '↑';
     upBtn.title = 'Move up';
+    upBtn.setAttribute('aria-label', 'Move cell up');
     upBtn.onclick = () => moveCell(cell, -1);
     controls.appendChild(upBtn);
 
+    // Move down
     const downBtn = document.createElement('button');
     downBtn.textContent = '↓';
     downBtn.title = 'Move down';
+    downBtn.setAttribute('aria-label', 'Move cell down');
     downBtn.onclick = () => moveCell(cell, 1);
     controls.appendChild(downBtn);
 
+    // Copy code button (for code cells)
+    if (type === 'code') {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'cell-copy-btn';
+        copyBtn.title = 'Copy code';
+        copyBtn.setAttribute('aria-label', 'Copy code to clipboard');
+        copyBtn.innerHTML = '⧉';
+        copyBtn.onclick = () => {
+            if (editor) {
+                navigator.clipboard.writeText(editor.getValue());
+                showToast('Code copied!');
+            }
+        };
+        controls.appendChild(copyBtn);
+    }
+
+    // Delete
     const delBtn = document.createElement('button');
     delBtn.textContent = '🗑';
     delBtn.title = 'Delete cell';
+    delBtn.setAttribute('aria-label', 'Delete cell');
     delBtn.onclick = () => {
         cell.remove();
         updateCellsArray();
@@ -413,20 +838,20 @@ function createCell(type, content = '') {
 
     cell.appendChild(controls);
 
+    let editor = null;
     if (type === 'code') {
-        // No language selector, always Python
         // CodeMirror editor
         const textarea = document.createElement('textarea');
         textarea.value = content || '# Write your Python code here';
         cell.appendChild(textarea);
-        const editor = CodeMirror.fromTextArea(textarea, {
-        lineNumbers: true,
+        editor = CodeMirror.fromTextArea(textarea, {
+            lineNumbers: true,
             mode: 'python',
             theme: 'material-darker',
-        indentUnit: 4,
-        tabSize: 4,
-        autoCloseBrackets: true,
-        matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            autoCloseBrackets: true,
+            matchBrackets: true,
             styleActiveLine: true,
             lineWrapping: true,
             extraKeys: {
@@ -466,37 +891,38 @@ function createCell(type, content = '') {
         const runBtn = document.createElement('button');
         runBtn.textContent = '▶ Run';
         runBtn.className = 'run-btn';
+        runBtn.setAttribute('aria-label', 'Run code');
+        let running = false;
         runBtn.onclick = async () => {
+            if (running) return;
+            running = true;
             runBtn.disabled = true;
-            runBtn.textContent = 'Running...';
+            runBtn.innerHTML = '<span class="spinner"></span> Running...';
             let code = editor.getValue();
             let output = '';
             try {
                 // Auto-print last expression if not a statement
                 let lines = code.trim().split('\n');
                 let lastLine = lines[lines.length - 1].trim();
-                // Improved: Only auto-print if last line is an expression (not a statement or function call)
                 if (
                     lastLine &&
                     !lastLine.startsWith('print') &&
                     !lastLine.match(/^(def |class |import |from |for |while |if |try|with |return |#|@)/) &&
                     !lastLine.includes('=') &&
-                    !lastLine.match(/^[a-zA-Z_][a-zA-Z0-9_]*\s*\(.*\)\s*$/) // don't wrap function calls
+                    !lastLine.match(/^[a-zA-Z_][a-zA-Z0-9_]*\s*\(.*\)\s*$/)
                 ) {
                     lines[lines.length - 1] = `print(${lastLine})`;
                     code = lines.join('\n');
                 }
                 const pyodide = await pyodideReadyPromise;
-                // Patch input() for Pyodide to use prompt and show input in output area
-                pyodide.globals.set('input', function(promptText) {
-                    let value = window.prompt(promptText || 'Input:') || '';
-                    // Write prompt and value to output buffer
-                    pyodide.runPython(
-                        `try:\n    __pyodide_output.write(str(${JSON.stringify(promptText || 'Input:')}) + '\\n' + str(${JSON.stringify(value)}) + '\\n')\nexcept: pass`
-                    );
-                    return value;
+                // --- Fix input() handling ---
+                pyodide.globals.set("js_input", (promptText) => {
+                    return window.prompt(promptText || "Input:") || "";
                 });
-                // Redirect stdout and stderr
+                await pyodide.runPythonAsync(`
+import builtins
+builtins.input = js_input
+`);
                 await pyodide.runPythonAsync(`
 import sys
 from io import StringIO
@@ -504,7 +930,6 @@ sys._stdout = sys.stdout
 sys._stderr = sys.stderr
 sys.stdout = sys.stderr = __pyodide_output = StringIO()
 `);
-                // Run user code in a try/except to capture errors
                 await pyodide.runPythonAsync(`
 import traceback
 try:
@@ -513,17 +938,27 @@ except Exception:
     import sys
     sys.__pyodide_output.write(traceback.format_exc())
 `);
-                // Get output from buffer
                 output = await pyodide.runPythonAsync('__pyodide_output.getvalue()');
-                // Restore stdout and stderr
                 await pyodide.runPythonAsync('sys.stdout = sys._stdout; sys.stderr = sys._stderr');
                 if (!output) output = '';
             } catch (err) {
                 output = err.toString();
             }
-            outputDiv.textContent = output ? output.replace(/^(Input:[\s\S]*?\n\d+\n)/, '$1Output:\n') : '';
+            let cleanOutput = output ? output.replace(/^(Input:[\s\S]*?\n\d+\n)/, '$1Output:\n') : '';
+            cleanOutput = cleanOutput.replace(/\n+$/, ''); // Remove trailing newlines
+            outputDiv.textContent = cleanOutput;
+            // Auto-resize output to fit content exactly, after rendering
+            outputDiv.style.height = 'auto';
+            requestAnimationFrame(() => {
+                outputDiv.style.height = outputDiv.scrollHeight + 'px';
+            });
             runBtn.disabled = false;
-            runBtn.textContent = '▶ Run';
+            runBtn.innerHTML = '▶ Run';
+            running = false;
+            // No execution count increment
+            // Auto-scroll output to bottom
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+            autoSaveNotebook();
         };
         cell.appendChild(runBtn);
 
@@ -531,13 +966,14 @@ except Exception:
         const outputDiv = document.createElement('div');
         outputDiv.className = 'cell-output';
         outputDiv.textContent = 'Output will appear here...';
+        outputDiv.setAttribute('tabindex', '0');
+        outputDiv.setAttribute('aria-label', 'Code output');
         cell.appendChild(outputDiv);
     } else if (type === 'text') {
         const textDiv = document.createElement('div');
         textDiv.className = 'text-cell';
         textDiv.contentEditable = true;
         textDiv.innerHTML = content || 'Double-click to edit text...';
-        // Auto-resize text cell as you type
         function autoResizeTextCell() {
             textDiv.style.height = 'auto';
             textDiv.style.height = (textDiv.scrollHeight + 2) + 'px';
@@ -549,8 +985,159 @@ except Exception:
     return cell;
 }
 
+// --- Enhanced createCell function for text cells ---
+function createTextCell(content = '') {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'text-cell-wrapper';
+
+    // Line numbers container
+    const lineNumbers = document.createElement('div');
+    lineNumbers.className = 'text-cell-linenumbers';
+    lineNumbers.style.position = 'absolute';
+    lineNumbers.style.left = '0';
+    lineNumbers.style.top = '44px';
+    lineNumbers.style.width = '32px';
+    lineNumbers.style.textAlign = 'right';
+    lineNumbers.style.color = '#6ed6ff';
+    lineNumbers.style.fontSize = '1em';
+    lineNumbers.style.userSelect = 'none';
+    lineNumbers.style.paddingRight = '6px';
+    lineNumbers.style.lineHeight = '1.7';
+    lineNumbers.style.fontFamily = 'monospace';
+    lineNumbers.style.zIndex = '2';
+    lineNumbers.style.pointerEvents = 'none';
+    lineNumbers.style.background = 'transparent';
+    wrapper.appendChild(lineNumbers);
+
+    // Toolbar
+    const toolbar = document.createElement('div');
+    toolbar.className = 'text-cell-toolbar';
+    // Toolbar buttons
+    const boldBtn = document.createElement('button');
+    boldBtn.innerHTML = '<b>B</b>';
+    boldBtn.title = 'Bold (Ctrl+B)';
+    boldBtn.onclick = () => insertMarkdown('**', '**');
+    toolbar.appendChild(boldBtn);
+    const italicBtn = document.createElement('button');
+    italicBtn.innerHTML = '<i>I</i>';
+    italicBtn.title = 'Italic (Ctrl+I)';
+    italicBtn.onclick = () => insertMarkdown('*', '*');
+    toolbar.appendChild(italicBtn);
+    const headerBtn = document.createElement('button');
+    headerBtn.innerHTML = '<b>H</b>';
+    headerBtn.title = 'Header';
+    headerBtn.onclick = () => insertMarkdown('# ', '');
+    toolbar.appendChild(headerBtn);
+    const listBtn = document.createElement('button');
+    listBtn.innerHTML = '&#8226; List';
+    listBtn.title = 'List';
+    listBtn.onclick = () => insertMarkdown('- ', '');
+    toolbar.appendChild(listBtn);
+    // Preview toggle
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'preview-toggle';
+    previewBtn.innerHTML = 'Preview';
+    previewBtn.title = 'Toggle Markdown Preview';
+    toolbar.appendChild(previewBtn);
+    wrapper.appendChild(toolbar);
+
+    // Textarea
+    const textDiv = document.createElement('div');
+    textDiv.className = 'text-cell';
+    textDiv.contentEditable = true;
+    // Restore line breaks from saved content
+    if (content) {
+        textDiv.innerHTML = content.split('\n').map(line => line || '<br>').join('<br>');
+    } else {
+        textDiv.innerHTML = '';
+    }
+    textDiv.setAttribute('aria-label', 'Text cell editor');
+    textDiv.setAttribute('spellcheck', 'true');
+    textDiv.style.minHeight = '36px';
+    textDiv.style.marginLeft = '32px'; // Space for line numbers
+    textDiv.style.display = 'block';
+    textDiv.style.width = 'calc(100% - 32px)';
+
+    // Update line numbers robustly
+    function updateLineNumbers() {
+        const lines = getTextWithLineBreaks(textDiv).split('\n');
+        lineNumbers.innerHTML = '';
+        for (let i = 0; i < lines.length; i++) {
+            const ln = document.createElement('div');
+            ln.textContent = i + 1;
+            lineNumbers.appendChild(ln);
+        }
+    }
+    textDiv.addEventListener('input', updateLineNumbers);
+    textDiv.addEventListener('paste', function() { setTimeout(updateLineNumbers, 0); });
+    textDiv.addEventListener('keydown', function(e) {
+        if (['Enter', 'Backspace', 'Delete'].includes(e.key)) {
+            setTimeout(updateLineNumbers, 0);
+        }
+    });
+    setTimeout(updateLineNumbers, 0);
+
+    // Placeholder
+    const placeholder = document.createElement('div');
+    placeholder.className = 'text-cell-placeholder';
+    placeholder.textContent = 'Double-click to edit text or use markdown...';
+    wrapper.appendChild(placeholder);
+    function updatePlaceholder() {
+        placeholder.style.display = textDiv.innerText.trim() ? 'none' : '';
+    }
+    textDiv.addEventListener('input', updatePlaceholder);
+    setTimeout(updatePlaceholder, 0);
+    wrapper.appendChild(textDiv);
+
+    // Markdown preview
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'text-cell-preview';
+    previewDiv.style.display = 'none';
+    wrapper.appendChild(previewDiv);
+
+    // Preview toggle logic
+    let previewMode = false;
+    previewBtn.onclick = () => {
+        previewMode = !previewMode;
+        if (previewMode) {
+            previewDiv.innerHTML = marked.parse(textDiv.innerText || '');
+            previewDiv.style.display = '';
+            textDiv.style.display = 'none';
+            placeholder.style.display = 'none';
+            previewBtn.innerHTML = 'Edit';
+        } else {
+            previewDiv.style.display = 'none';
+            textDiv.style.display = '';
+            updatePlaceholder();
+            previewBtn.innerHTML = 'Preview';
+        }
+    };
+
+    // Markdown insert helpers
+    function insertMarkdown(before, after) {
+        textDiv.focus();
+        document.execCommand('insertText', false, before + after);
+    }
+    // Keyboard shortcuts
+    textDiv.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key.toLowerCase() === 'b') {
+            e.preventDefault(); insertMarkdown('**', '**');
+        } else if (e.ctrlKey && e.key.toLowerCase() === 'i') {
+            e.preventDefault(); insertMarkdown('*', '*');
+        }
+    });
+    // Auto-resize
+    function autoResizeTextCell() {
+        textDiv.style.height = 'auto';
+        textDiv.style.height = (textDiv.scrollHeight + 2) + 'px';
+    }
+    textDiv.addEventListener('input', autoResizeTextCell);
+    setTimeout(autoResizeTextCell, 0);
+    return wrapper;
+}
+
 function addCell(type, content = '', index = null) {
-    const cell = createCell(type, content);
+    const cell = createCell(type, content, null, index); // Pass null for execCount, index will be handled by createCell
     const cellsDiv = document.getElementById('cells');
     if (index === null || index >= cellsDiv.children.length) {
         cellsDiv.appendChild(cell);
@@ -589,7 +1176,7 @@ function getPythonCode() {
 
 document.getElementById('downloadIpynb').onclick = function() {
     const notebook = getNotebookJSON();
-    const fileName = (document.getElementById('pyFileName').value.trim().replace(/\.py$/, '') || 'notebook') + '.ipynb';
+    let fileName = currentNotebookName ? currentNotebookName + '.ipynb' : (document.getElementById('pyFileName').value.trim().replace(/\.py$/, '') || 'notebook') + '.ipynb';
     const blob = new Blob([JSON.stringify(notebook, null, 2)], {type: 'application/x-ipynb+json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -649,9 +1236,29 @@ uploadPyFileInput.onchange = function(event) {
     uploadPyFileInput.value = '';
 };
 
+// Helper to get text with line breaks from contentEditable div
+function getTextWithLineBreaks(element) {
+    let lines = [];
+    for (let node of element.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            lines.push(node.textContent);
+        } else if (node.nodeName === 'BR') {
+            lines.push('');
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.nodeName === 'DIV') {
+                lines.push(getTextWithLineBreaks(node));
+            } else {
+                lines.push(node.textContent);
+            }
+        }
+    }
+    return lines.join('\n');
+}
+
 function getNotebookJSON() {
     const cellsDiv = document.getElementById('cells');
     let cellsArr = [];
+    let codeCellIndex = 0;
     for (const cell of cellsDiv.children) {
         if (cell.querySelector('.CodeMirror')) {
             const editor = cell.querySelector('.CodeMirror').CodeMirror;
@@ -670,15 +1277,20 @@ function getNotebookJSON() {
                     text: outputText.split('\n').map(line => line + '\n')
                 });
             }
+            // Save exec count in metadata
+            let exec_count = 0; // No longer saving execution count
             cellsArr.push({
                 cell_type: 'code',
-                metadata: {},
+                metadata: { exec_count },
                 source: editor.getValue().split('\n').map(line => line + '\n'),
                 outputs: outputs,
-                execution_count: null
+                execution_count: exec_count
             });
+            codeCellIndex++;
         } else if (cell.querySelector('.text-cell')) {
-            const text = cell.querySelector('.text-cell').innerText;
+            const textDiv = cell.querySelector('.text-cell');
+            // Use helper to get text with line breaks
+            const text = getTextWithLineBreaks(textDiv);
             cellsArr.push({
                 cell_type: 'markdown',
                 metadata: {},
@@ -745,7 +1357,12 @@ const NOTEBOOK_PREFIX = 'practice_notebook_';
 const NOTEBOOK_LIST_KEY = 'practice_notebook_list';
 let currentNotebookName = null;
 
+function syncFileNameInput(name) {
+    document.getElementById('pyFileName').value = name ? name + '.ipynb' : '';
+}
+
 function saveNotebookToLocal(name) {
+    try {
     const notebook = getNotebookJSON();
     const now = new Date().toISOString();
     localStorage.setItem(NOTEBOOK_PREFIX + name, JSON.stringify({notebook, lastModified: now}));
@@ -762,6 +1379,9 @@ function saveNotebookToLocal(name) {
     }
     // Update last modified
     localStorage.setItem(NOTEBOOK_PREFIX + name + '_lastmod', now);
+    } catch (e) {
+        showToast('Auto-save failed! Local storage may be full.');
+    }
 }
 function loadNotebookFromLocal(name) {
     const data = localStorage.getItem(NOTEBOOK_PREFIX + name);
@@ -769,11 +1389,14 @@ function loadNotebookFromLocal(name) {
     try {
         let parsed = JSON.parse(data);
         let notebook = parsed.notebook || parsed; // backward compatible
-        loadNotebookJSON(notebook);
+        // --- Fix: Set currentNotebookName before loading cells ---
         currentNotebookName = name;
-        document.getElementById('pyFileName').value = name + '.ipynb';
+        syncFileNameInput(name);
+        // --- Fix: Clear cells and load only this notebook's cells ---
+        loadNotebookJSON(notebook);
         return true;
-    } catch {
+    } catch (e) {
+        showToast('Failed to load notebook.');
         return false;
     }
 }
@@ -793,6 +1416,13 @@ function deleteNotebook(name) {
     localStorage.removeItem(NOTEBOOK_PREFIX + name + '_lastmod');
     let list = getRecentNotebookNames().filter(n => n !== name);
     localStorage.setItem(NOTEBOOK_LIST_KEY, JSON.stringify(list));
+    // If current notebook is deleted, clear UI
+    if (currentNotebookName === name) {
+        clearCells();
+        currentNotebookName = null;
+        syncFileNameInput('');
+        showToast('Current notebook deleted. Please create or open another.');
+    }
 }
 function renameNotebook(oldName, newName) {
     if (!oldName || !newName || oldName === newName) return false;
@@ -805,39 +1435,81 @@ function renameNotebook(oldName, newName) {
     let list = getRecentNotebookNames();
     list = list.map(n => n === oldName ? newName : n);
     localStorage.setItem(NOTEBOOK_LIST_KEY, JSON.stringify(list));
+    // If current notebook is renamed, update name
+    if (currentNotebookName === oldName) {
+        currentNotebookName = newName;
+        syncFileNameInput(newName);
+    }
     return true;
 }
 function clearCells() {
     document.getElementById('cells').innerHTML = '';
     updateCellsArray();
 }
+// When loading a notebook, reset cellExecCounts and restore counts if present
 function loadNotebookJSON(notebook) {
     clearCells();
+    isLoadingNotebook = true;
+    // cellExecCounts = []; // No longer needed
     if (Array.isArray(notebook.cells)) {
-        for (const cell of notebook.cells) {
+        for (let i = 0; i < notebook.cells.length; i++) {
+            const cell = notebook.cells[i];
+            // let count = 0; // No longer loading execution count
+            // if (cell.metadata && typeof cell.metadata.exec_count === 'number') {
+            //     count = cell.metadata.exec_count;
+            // }
+            // cellExecCounts[i] = count;
             if (cell.cell_type === 'code') {
                 const code = (cell.source || []).join('').replace(/\r?\n$/, '');
-                addCell('code', code);
+                addCell('code', code, i);
+                // Set output if present
+                if (cell.outputs && cell.outputs.length > 0) {
+                    const outputDiv = cells[cells.length - 1].querySelector('.cell-output');
+                    // Only handle 'stream' output for now
+                    const streamOutput = cell.outputs.find(o => o.output_type === 'stream');
+                    if (streamOutput && streamOutput.text) {
+                        let text = Array.isArray(streamOutput.text) ? streamOutput.text.join('') : streamOutput.text;
+                        text = text.replace(/\n+$/, ''); // Remove trailing newlines
+                        outputDiv.textContent = text;
+                        // Auto-resize output to fit content exactly, after rendering
+                        outputDiv.style.height = 'auto';
+                        requestAnimationFrame(() => {
+                            outputDiv.style.height = outputDiv.scrollHeight + 'px';
+                        });
+                        outputDiv.scrollTop = outputDiv.scrollHeight;
+                    }
+                }
             } else if (cell.cell_type === 'markdown') {
                 const text = (cell.source || []).join('').replace(/\r?\n$/, '');
-                addCell('text', text);
+                addCell('text', text, i);
             }
         }
     }
     updateCellHoverTracking();
+    isLoadingNotebook = false;
 }
 // --- Auto-save on changes ---
 function autoSaveNotebook() {
     if (currentNotebookName) {
         saveNotebookToLocal(currentNotebookName);
+    } else {
+        showToast('No notebook loaded. Please create or open a notebook.');
     }
 }
 // Patch addCell, moveCell, updateCellsArray, and cell editors to auto-save
 const origAddCell = addCell;
 addCell = function(type, content = '', index = null) {
-    origAddCell(type, content, index);
-    autoSaveNotebook();
-    // Patch CodeMirror/text-cell for auto-save
+    // For code cells, pass index for cell number
+    let cellIndex = index;
+    if (cellIndex === null) {
+        // Find the next code cell index
+        const cellsDiv = document.getElementById('cells');
+        cellIndex = Array.from(cellsDiv.children).filter(c => c.querySelector('.CodeMirror')).length;
+    }
+    origAddCell(type, content, cellIndex);
+    if (!isLoadingNotebook) {
+        autoSaveNotebook();
+    }
     const cell = cells[cells.length-1];
     if (type === 'code') {
         const editor = cell.querySelector('.CodeMirror').CodeMirror;
@@ -877,7 +1549,7 @@ function showStartupModal() {
         recentListDiv.innerHTML = '<b style="color:#6ed6ff;">Recent Pages:</b>' +
             names.map(n =>
                 `<div class=\"recent-card${n===current?' current':''}\">`+
-                `<button class=\"recentPageBtn recent-name\" data-name=\"${n}\" tabindex=\"0\" title=\"Open\">📓 ${n}</button>`+
+                `<button class=\"recentPageBtn recent-name${n===current?' selected':''}\" data-name=\"${n}\" tabindex=\"0\" title=\"Open\">📓 ${n}${n===current?' (current)':''}</button>`+
                 `<span class=\"recent-meta\">${getNotebookLastModified(n)}</span>`+
                 `<button class=\"action-btn renamePageBtn\" data-name=\"${n}\" title=\"Rename\">✏️</button>`+
                 `<button class=\"action-btn deletePageBtn\" data-name=\"${n}\" title=\"Delete\">🗑️</button>`+
@@ -893,9 +1565,10 @@ function showStartupModal() {
     setTimeout(() => {
         document.querySelectorAll('.recentPageBtn').forEach(btn => {
             btn.onclick = function() {
-                loadNotebookFromLocal(this.dataset.name);
+                if (loadNotebookFromLocal(this.dataset.name)) {
                 hideStartupModal();
                 showToast('Notebook loaded!');
+                }
             };
         });
         document.querySelectorAll('.deletePageBtn').forEach(btn => {
@@ -904,7 +1577,6 @@ function showStartupModal() {
                 if (confirm('Delete notebook "' + this.dataset.name + '"?')) {
                     deleteNotebook(this.dataset.name);
                     showStartupModal();
-                    showToast('Notebook deleted.');
                 }
             };
         });
@@ -914,11 +1586,15 @@ function showStartupModal() {
                 const oldName = this.dataset.name;
                 const newName = prompt('Rename notebook:', oldName);
                 if (newName && newName !== oldName) {
+                    if (getRecentNotebookNames().includes(newName)) {
+                        showToast('Rename failed. Name already exists.');
+                        return;
+                    }
                     if (renameNotebook(oldName, newName)) {
                         showStartupModal();
                         showToast('Notebook renamed.');
                     } else {
-                        showToast('Rename failed. Name may already exist.');
+                        showToast('Rename failed.');
                     }
                 }
             };
@@ -952,6 +1628,7 @@ document.getElementById('createNewPageBtn').onclick = function() {
         return;
     }
     currentNotebookName = name;
+    syncFileNameInput(name);
     clearCells();
     addCell('code');
     saveNotebookToLocal(name);
@@ -991,14 +1668,125 @@ recentBtn.onclick = function() {
     showStartupModal();
 };
 headerActions.appendChild(recentBtn);
-// Update +Code and +Text buttons to insert below hovered cell
+// Update +Code and +Text buttons to always insert at the bottom
 const addCodeBtn = document.getElementById('addCodeCell');
 const addTextBtn = document.getElementById('addTextCell');
-addCodeBtn.onclick = () => addCell('code', '', hoveredCellIndex !== null ? hoveredCellIndex + 1 : null);
-addTextBtn.onclick = () => addCell('text', '', hoveredCellIndex !== null ? hoveredCellIndex + 1 : null);
+addCodeBtn.onclick = () => addCell('code');
+addTextBtn.onclick = () => addCell('text');
 // Add tooltips to +Code and +Text buttons
-addCodeBtn.title = 'Add a code cell below the cell your mouse is pointing at';
-addTextBtn.title = 'Add a text cell below the cell your mouse is pointing at';
+addCodeBtn.title = 'Add a code cell to the bottom';
+addTextBtn.title = 'Add a text cell to the bottom';
+// --- Manual Save Button ---
+const manualSaveBtn = document.getElementById('manualSaveBtn');
+manualSaveBtn.onclick = function() {
+    if (currentNotebookName) {
+        try {
+            saveNotebookToLocal(currentNotebookName);
+            showToast('Notebook saved!');
+        } catch (e) {
+            showToast('Manual save failed!');
+        }
+    } else {
+        showToast('No notebook loaded. Please create or open a notebook.');
+    }
+};
+// --- Mobile menu JS logic ---
+// Mobile menu toggle
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const mobileMenu = document.getElementById('mobileMenu');
+mobileMenuBtn.onclick = function() {
+    mobileMenu.style.display = (mobileMenu.style.display === 'block') ? 'none' : 'block';
+};
+// Hide menu when clicking outside
+document.addEventListener('mousedown', function(e) {
+    if (mobileMenu.style.display === 'block' && !mobileMenu.contains(e.target) && e.target !== mobileMenuBtn) {
+        mobileMenu.style.display = 'none';
+    }
+});
+// Sync mobile menu actions with main actions
+document.getElementById('mobileAddCodeCell').onclick = () => { addCell('code'); mobileMenu.style.display = 'none'; };
+document.getElementById('mobileAddTextCell').onclick = () => { addCell('text'); mobileMenu.style.display = 'none'; };
+document.getElementById('mobileUploadPyFileBtn').onclick = function() { document.getElementById('mobileUploadPyFile').click(); };
+document.getElementById('mobileUploadPyFile').onchange = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const fileName = file.name;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        if (fileName.endsWith('.py')) {
+            addCell('code', content);
+        } else if (fileName.endsWith('.ipynb')) {
+            try {
+                const notebook = JSON.parse(content);
+                if (Array.isArray(notebook.cells)) {
+                    for (const cell of notebook.cells) {
+                        if (cell.cell_type === 'code') {
+                            const code = (cell.source || []).join('').replace(/\r?\n$/, '');
+                            addCell('code', code);
+                        } else if (cell.cell_type === 'markdown') {
+                            const text = (cell.source || []).join('').replace(/\r?\n$/, '');
+                            addCell('text', text);
+                        }
+                    }
+                } else {
+                    alert('Invalid .ipynb file: no cells found.');
+                }
+            } catch (err) {
+                alert('Failed to parse .ipynb file: ' + err);
+            }
+        } else {
+            alert('Please upload a .py or .ipynb file');
+        }
+    };
+    reader.readAsText(file);
+    document.getElementById('mobileUploadPyFile').value = '';
+    mobileMenu.style.display = 'none';
+};
+document.getElementById('mobileDownloadIpynb').onclick = function() {
+    const notebook = getNotebookJSON();
+    let fileName = currentNotebookName ? currentNotebookName + '.ipynb' : (document.getElementById('mobilePyFileName').value.trim().replace(/\.py$/, '') || 'notebook') + '.ipynb';
+    const blob = new Blob([JSON.stringify(notebook, null, 2)], {type: 'application/x-ipynb+json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+    mobileMenu.style.display = 'none';
+};
+document.getElementById('mobileManualSaveBtn').onclick = function() {
+    if (currentNotebookName) {
+        try {
+            saveNotebookToLocal(currentNotebookName);
+            showToast('Notebook saved!');
+        } catch (e) {
+            showToast('Manual save failed!');
+        }
+    } else {
+        showToast('No notebook loaded. Please create or open a notebook.');
+    }
+    mobileMenu.style.display = 'none';
+};
+document.getElementById('mobileRecentBtn').onclick = function() {
+    showStartupModal();
+    mobileMenu.style.display = 'none';
+};
+// Sync filename input between desktop and mobile
+const pyFileName = document.getElementById('pyFileName');
+const mobilePyFileName = document.getElementById('mobilePyFileName');
+function syncMobileFileName() {
+    mobilePyFileName.value = pyFileName.value;
+}
+function syncDesktopFileName() {
+    pyFileName.value = mobilePyFileName.value;
+}
+pyFileName.addEventListener('input', syncMobileFileName);
+mobilePyFileName.addEventListener('input', syncDesktopFileName);
 </script>
 </body>
 </html>
